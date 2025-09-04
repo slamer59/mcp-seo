@@ -1,0 +1,8 @@
+{
+  "command": "uvx",
+  "args": ["--from", ".", "mcp-data4seo"],
+  "env": {
+    "DATAFORSEO_LOGIN": "your_dataforseo_login", 
+    "DATAFORSEO_PASSWORD": "your_dataforseo_password"
+  }
+}
