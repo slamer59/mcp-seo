@@ -60,7 +60,7 @@ class OnPageAnalysisParams(BaseModel):
 
 class KeywordAnalysisParams(BaseModel):
     """Parameters for keyword analysis."""
-    keywords: List[str] = Field(..., min_items=1, max_items=100, description="List of keywords to analyze")
+    keywords: List[str] = Field(..., min_length=1, max_length=100, description="List of keywords to analyze")
     location: str = Field(default="usa", description="Geographic location (usa, uk, canada, etc.)")
     language: str = Field(default="english", description="Language for analysis")
     device: str = Field(default="desktop", description="Device type (desktop, mobile, tablet)")
@@ -92,7 +92,7 @@ class DomainAnalysisParams(BaseModel):
 class CompetitorComparisonParams(BaseModel):
     """Parameters for competitor comparison."""
     primary_domain: str = Field(..., description="Primary domain to compare")
-    competitor_domains: List[str] = Field(..., min_items=1, max_items=10, description="Competitor domains")
+    competitor_domains: List[str] = Field(..., min_length=1, max_length=10, description="Competitor domains")
     location: str = Field(default="usa", description="Geographic location")
     language: str = Field(default="english", description="Language for analysis")
 
@@ -659,6 +659,16 @@ try:
 except ImportError as e:
     print(f"Warning: PageRank tools not available: {e}")
     print("Install additional dependencies: kuzu, aiohttp, beautifulsoup4, numpy")
+
+# Register NetworkX graph analysis tools
+try:
+    from mcp_seo.tools.graph.networkx_tools import register_networkx_tools
+    register_networkx_tools(mcp)
+except ImportError as e:
+    print(f"Warning: NetworkX tools not available: {e}")
+    print("Install additional dependencies: networkx")
+except Exception as e:
+    print(f"Warning: Failed to register NetworkX tools: {e}")
 
 
 if __name__ == "__main__":
