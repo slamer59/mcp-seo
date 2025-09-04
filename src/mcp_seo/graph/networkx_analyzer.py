@@ -10,7 +10,7 @@ Provides comprehensive graph algorithms for SEO analysis including:
 """
 
 import logging
-from typing import Dict, List, Optional, Tuple, Set
+from typing import Dict, List, Optional, Set
 import numpy as np
 import networkx as nx
 from collections import defaultdict
@@ -45,9 +45,16 @@ class NetworkXAnalyzer:
             pages_data = self.kuzu_manager.get_page_data()
             links_data = self.kuzu_manager.get_links_data()
             
-            if not pages_data or not links_data:
-                logger.error("No page or link data found in database")
+            if not pages_data:
+                logger.error("No page data found in database")
+                # Initialize empty graphs to prevent None errors
+                self.graph = nx.DiGraph()
+                self.undirected_graph = nx.Graph()
                 return False
+                
+            # links_data can be empty (isolated nodes), but we still need pages
+            if links_data is None:
+                links_data = []
             
             # Create directed graph
             self.graph = nx.DiGraph()
@@ -72,11 +79,19 @@ class NetworkXAnalyzer:
             # Create undirected version for some algorithms
             self.undirected_graph = self.graph.to_undirected()
             
-            logger.info(f"Built NetworkX graph with {self.graph.number_of_nodes()} nodes and {self.graph.number_of_edges()} edges")
+            # Defensive check before accessing graph methods
+            if self.graph is not None and hasattr(self.graph, 'number_of_nodes'):
+                logger.info(f"Built NetworkX graph with {self.graph.number_of_nodes()} nodes and {self.graph.number_of_edges()} edges")
+            else:
+                logger.warning("Graph built but unable to access node count")
+                
             return True
             
         except Exception as e:
             logger.error(f"Error building NetworkX graph: {e}")
+            # Initialize empty graphs to prevent None errors
+            self.graph = nx.DiGraph()
+            self.undirected_graph = nx.Graph()
             return False
     
     def analyze_centrality(self) -> Dict:
@@ -87,64 +102,25 @@ class NetworkXAnalyzer:
             Dictionary with centrality metrics and SEO insights
         """
         try:
-            if not self.graph:
+            # Defensive check - ensure graph exists
+            if self.graph is None:
                 if not self.build_networkx_graph():
                     return {"error": "Failed to build graph"}
             
+            # Comprehensive None and empty graph validation
+            if (self.graph is None or 
+                not hasattr(self.graph, 'number_of_nodes') or 
+                self.graph.number_of_nodes() == 0):
+                logger.warning("Empty or invalid graph provided for centrality analysis")
+                return {"error": "Cannot perform centrality analysis on empty or invalid graph"}
+            
             logger.info("Starting comprehensive centrality analysis")
             
-            # Calculate different centrality measures
-            centrality_metrics = {}
-            
-            # 1. Degree Centrality (basic link popularity)
-            in_degree_centrality = nx.in_degree_centrality(self.graph)
-            out_degree_centrality = nx.out_degree_centrality(self.graph)
-            
-            # 2. Betweenness Centrality (bridge pages)
-            betweenness_centrality = nx.betweenness_centrality(self.graph, k=min(100, len(self.graph)))
-            
-            # 3. Closeness Centrality (accessibility)
-            try:
-                # Use strongly connected components for directed graph
-                largest_scc = max(nx.strongly_connected_components(self.graph), key=len)
-                scc_subgraph = self.graph.subgraph(largest_scc)
-                closeness_centrality = nx.closeness_centrality(scc_subgraph)
-            except:
-                closeness_centrality = {}
-                logger.warning("Could not calculate closeness centrality for full graph")
-            
-            # 4. Eigenvector Centrality (authority from authoritative sources)
-            try:
-                eigenvector_centrality = nx.eigenvector_centrality(self.graph, max_iter=1000)
-            except:
-                eigenvector_centrality = {}
-                logger.warning("Could not calculate eigenvector centrality")
-            
-            # 5. Katz Centrality (alternative to eigenvector)
-            try:
-                katz_centrality = nx.katz_centrality(self.graph, max_iter=1000)
-            except:
-                katz_centrality = {}
-                logger.warning("Could not calculate Katz centrality")
+            # Calculate different centrality measures using helper functions
+            centrality_metrics = self._calculate_all_centralities()
             
             # Combine results
-            all_urls = set(self.graph.nodes())
-            results = {}
-            
-            for url in all_urls:
-                node_data = self.graph.nodes[url]
-                results[url] = {
-                    'url': url,
-                    'title': node_data.get('title', ''),
-                    'path': node_data.get('path', ''),
-                    'pagerank': node_data.get('pagerank', 0.0),
-                    'in_degree_centrality': in_degree_centrality.get(url, 0.0),
-                    'out_degree_centrality': out_degree_centrality.get(url, 0.0),
-                    'betweenness_centrality': betweenness_centrality.get(url, 0.0),
-                    'closeness_centrality': closeness_centrality.get(url, 0.0),
-                    'eigenvector_centrality': eigenvector_centrality.get(url, 0.0),
-                    'katz_centrality': katz_centrality.get(url, 0.0)
-                }
+            results = self._combine_centrality_results(centrality_metrics)
             
             # Generate SEO insights
             insights = self._generate_centrality_insights(results)
@@ -170,26 +146,44 @@ class NetworkXAnalyzer:
             Dictionary with community structure and SEO insights
         """
         try:
-            if not self.undirected_graph:
+            # Defensive check - ensure graphs exist
+            if self.undirected_graph is None:
                 if not self.build_networkx_graph():
                     return {"error": "Failed to build graph"}
             
+            # Comprehensive None and empty graph validation
+            if (self.undirected_graph is None or 
+                not hasattr(self.undirected_graph, 'number_of_nodes') or 
+                self.undirected_graph.number_of_nodes() == 0):
+                logger.warning("Empty or invalid undirected graph provided for community detection")
+                return {"error": "Cannot perform community detection on empty or invalid graph"}
+            
+            # Also check main graph for node data access
+            if (self.graph is None or 
+                not hasattr(self.graph, 'nodes')):
+                logger.error("Main graph is None or invalid after build attempt")
+                return {"error": "Failed to create valid main graph"}
+            
             logger.info(f"Starting community detection using {algorithm}")
-            
-            # Apply community detection algorithm
-            if algorithm == 'louvain':
-                try:
-                    import networkx.algorithms.community as nx_comm
-                    communities = nx_comm.louvain_communities(self.undirected_graph, seed=42)
-                except ImportError:
-                    # Fallback to greedy modularity if louvain not available
-                    logger.warning("Louvain algorithm not available, using greedy modularity")
-                    communities = nx.algorithms.community.greedy_modularity_communities(self.undirected_graph)
+                
+            if self.undirected_graph.number_of_edges() == 0:
+                # Each node is its own community for isolated nodes
+                communities = [{node} for node in self.undirected_graph.nodes()]
+                modularity = 0.0
             else:
-                communities = nx.algorithms.community.greedy_modularity_communities(self.undirected_graph)
-            
-            # Calculate modularity score
-            modularity = nx.algorithms.community.modularity(self.undirected_graph, communities)
+                # Apply community detection algorithm
+                if algorithm == 'louvain':
+                    try:
+                        communities = list(nx.algorithms.community.louvain_communities(self.undirected_graph, seed=42))
+                    except Exception as e:
+                        # Fallback to greedy modularity if louvain fails
+                        logger.warning(f"Louvain algorithm failed ({e}), using greedy modularity")
+                        communities = list(nx.algorithms.community.greedy_modularity_communities(self.undirected_graph))
+                else:
+                    communities = list(nx.algorithms.community.greedy_modularity_communities(self.undirected_graph))
+                
+                # Calculate modularity score
+                modularity = nx.algorithms.community.modularity(self.undirected_graph, communities)
             
             # Process communities
             community_data = []
@@ -253,48 +247,71 @@ class NetworkXAnalyzer:
             Dictionary with path analysis and navigation insights
         """
         try:
-            if not self.graph:
+            # Defensive check - ensure graph exists
+            if self.graph is None:
                 if not self.build_networkx_graph():
                     return {"error": "Failed to build graph"}
+            
+            # Comprehensive None and empty graph validation
+            if (self.graph is None or 
+                not hasattr(self.graph, 'number_of_nodes') or 
+                self.graph.number_of_nodes() == 0):
+                logger.warning("Empty or invalid graph provided for path analysis")
+                return {"error": "Cannot perform path analysis on empty or invalid graph"}
             
             logger.info("Starting path analysis")
             
             # Find strongly connected components
-            scc_components = list(nx.strongly_connected_components(self.graph))
-            largest_scc = max(scc_components, key=len) if scc_components else set()
+            try:
+                scc_components = list(nx.strongly_connected_components(self.graph))
+                largest_scc = max(scc_components, key=len) if scc_components else set()
+            except Exception as e:
+                logger.warning(f"Error finding strongly connected components: {e}")
+                scc_components = []
+                largest_scc = set()
             
             # Calculate shortest paths within largest SCC (or attempt full graph)
-            try:
-                if len(largest_scc) > 1:
+            path_lengths = {}
+            if largest_scc and len(largest_scc) > 1:
+                try:
                     scc_subgraph = self.graph.subgraph(largest_scc)
-                    # Sample nodes for efficiency
-                    sample_nodes = list(largest_scc)[:50] if len(largest_scc) > 50 else list(largest_scc)
-                    path_lengths = dict(nx.all_pairs_shortest_path_length(scc_subgraph, cutoff=6))
-                else:
+                    if (scc_subgraph is not None and 
+                        hasattr(scc_subgraph, 'number_of_nodes') and 
+                        scc_subgraph.number_of_nodes() > 1):
+                        # Sample nodes for efficiency
+                        sample_nodes = list(largest_scc)[:50] if len(largest_scc) > 50 else list(largest_scc)
+                        path_lengths = dict(nx.all_pairs_shortest_path_length(scc_subgraph, cutoff=6))
+                except Exception as e:
+                    logger.warning(f"Could not calculate shortest paths: {e}")
                     path_lengths = {}
-            except Exception as e:
-                logger.warning(f"Could not calculate all shortest paths: {e}")
-                path_lengths = {}
             
             # Calculate eccentricity and other metrics
             metrics = {}
             if largest_scc and len(largest_scc) > 1:
-                scc_subgraph = self.graph.subgraph(largest_scc)
                 try:
-                    # Calculate various path metrics
-                    diameter = nx.diameter(scc_subgraph)
-                    radius = nx.radius(scc_subgraph)
-                    center_nodes = nx.center(scc_subgraph)
-                    periphery_nodes = nx.periphery(scc_subgraph)
-                    
-                    metrics.update({
-                        'diameter': diameter,
-                        'radius': radius,
-                        'center_nodes': list(center_nodes),
-                        'periphery_nodes': list(periphery_nodes)
-                    })
-                except:
-                    logger.warning("Could not calculate graph diameter/radius")
+                    scc_subgraph = self.graph.subgraph(largest_scc)
+                    if (scc_subgraph is not None and 
+                        hasattr(scc_subgraph, 'number_of_nodes') and 
+                        scc_subgraph.number_of_nodes() > 1):
+                        # Calculate various path metrics
+                        try:
+                            undirected_scc = scc_subgraph.to_undirected()
+                            if undirected_scc is not None and nx.is_weakly_connected(undirected_scc):
+                                diameter = nx.diameter(undirected_scc)
+                                radius = nx.radius(undirected_scc)
+                                center_nodes = nx.center(undirected_scc)
+                                periphery_nodes = nx.periphery(undirected_scc)
+                                
+                                metrics.update({
+                                    'diameter': diameter,
+                                    'radius': radius,
+                                    'center_nodes': list(center_nodes),
+                                    'periphery_nodes': list(periphery_nodes)
+                                })
+                        except Exception as inner_e:
+                            logger.warning(f"Could not calculate graph metrics on undirected subgraph: {inner_e}")
+                except Exception as e:
+                    logger.warning(f"Could not calculate graph diameter/radius: {e}")
             
             # Calculate average path length
             if path_lengths:
@@ -315,26 +332,29 @@ class NetworkXAnalyzer:
             hard_to_reach = []
             easy_to_reach = []
             
-            for url in self.graph.nodes():
-                node_data = self.graph.nodes[url]
-                in_degree = node_data.get('in_degree', 0)
-                
-                if in_degree <= 1:
-                    hard_to_reach.append({
-                        'url': url,
-                        'title': node_data.get('title', ''),
-                        'path': node_data.get('path', ''),
-                        'in_degree': in_degree,
-                        'pagerank': node_data.get('pagerank', 0.0)
-                    })
-                elif in_degree >= 5:
-                    easy_to_reach.append({
-                        'url': url,
-                        'title': node_data.get('title', ''),
-                        'path': node_data.get('path', ''),
-                        'in_degree': in_degree,
-                        'pagerank': node_data.get('pagerank', 0.0)
-                    })
+            try:
+                for url in self.graph.nodes():
+                    node_data = self.graph.nodes[url] if url in self.graph else {}
+                    in_degree = node_data.get('in_degree', 0)
+                    
+                    if in_degree <= 1:
+                        hard_to_reach.append({
+                            'url': url,
+                            'title': node_data.get('title', ''),
+                            'path': node_data.get('path', ''),
+                            'in_degree': in_degree,
+                            'pagerank': node_data.get('pagerank', 0.0)
+                        })
+                    elif in_degree >= 5:
+                        easy_to_reach.append({
+                            'url': url,
+                            'title': node_data.get('title', ''),
+                            'path': node_data.get('path', ''),
+                            'in_degree': in_degree,
+                            'pagerank': node_data.get('pagerank', 0.0)
+                        })
+            except Exception as e:
+                logger.warning(f"Error analyzing node reachability: {e}")
             
             # Sort by PageRank
             hard_to_reach.sort(key=lambda x: x['pagerank'], reverse=True)
@@ -365,13 +385,27 @@ class NetworkXAnalyzer:
             Dictionary with structural analysis and architecture insights
         """
         try:
-            if not self.graph:
+            # Defensive check - ensure graphs exist
+            if self.graph is None:
                 if not self.build_networkx_graph():
                     return {"error": "Failed to build graph"}
             
-            logger.info("Starting structural analysis")
+            # Comprehensive None and empty graph validation for main graph
+            if (self.graph is None or 
+                not hasattr(self.graph, 'number_of_nodes') or 
+                self.graph.number_of_nodes() == 0):
+                logger.warning("Empty or invalid graph provided for structural analysis")
+                return {"error": "Cannot perform structural analysis on empty or invalid graph"}
             
-            # K-core decomposition
+            # Comprehensive None and empty graph validation for undirected graph
+            if (self.undirected_graph is None or 
+                not hasattr(self.undirected_graph, 'number_of_nodes') or 
+                self.undirected_graph.number_of_nodes() == 0):
+                logger.warning("Empty or invalid undirected graph provided for structural analysis")
+                return {"error": "Cannot perform structural analysis on empty or invalid undirected graph"}
+            
+            logger.info("Starting structural analysis")
+                
             core_numbers = nx.core_number(self.undirected_graph)
             max_core = max(core_numbers.values()) if core_numbers else 0
             
@@ -393,8 +427,13 @@ class NetworkXAnalyzer:
                 cores[core_num].sort(key=lambda x: x['pagerank'], reverse=True)
             
             # Calculate clustering coefficient
-            clustering_coeffs = nx.clustering(self.undirected_graph)
-            avg_clustering = np.mean(list(clustering_coeffs.values())) if clustering_coeffs else 0
+            try:
+                clustering_coeffs = nx.clustering(self.undirected_graph)
+                avg_clustering = np.mean(list(clustering_coeffs.values())) if clustering_coeffs else 0
+            except Exception as e:
+                logger.warning(f"Error calculating clustering coefficient: {e}")
+                clustering_coeffs = {}
+                avg_clustering = 0
             
             # Find high clustering pages (good for topic clusters)
             high_clustering_pages = []
@@ -419,7 +458,12 @@ class NetworkXAnalyzer:
             density = nx.density(self.graph)
             
             # Find articulation points (critical pages for connectivity)
-            articulation_points = set(nx.articulation_points(self.undirected_graph))
+            try:
+                articulation_points = set(nx.articulation_points(self.undirected_graph))
+            except Exception as e:
+                logger.warning(f"Error finding articulation points: {e}")
+                articulation_points = set()
+                
             critical_pages = []
             
             for url in articulation_points:
@@ -467,9 +511,17 @@ class NetworkXAnalyzer:
             Dictionary with connector pages and bridge opportunities
         """
         try:
-            if not self.graph:
+            # Defensive check - ensure graph exists
+            if self.graph is None:
                 if not self.build_networkx_graph():
                     return {"error": "Failed to build graph"}
+            
+            # Comprehensive None and empty graph validation
+            if (self.graph is None or 
+                not hasattr(self.graph, 'number_of_nodes') or 
+                self.graph.number_of_nodes() == 0):
+                logger.warning("Empty or invalid graph provided for connector analysis")
+                return {"error": "Cannot find connector pages on empty or invalid graph"}
             
             logger.info("Finding connector pages")
             
@@ -534,22 +586,157 @@ class NetworkXAnalyzer:
             logger.error(f"Error finding connector pages: {e}")
             return {"error": str(e)}
     
+    def _calculate_all_centralities(self) -> Dict:
+        """
+        Calculate all centrality measures for the graph.
+        
+        Returns:
+            Dictionary with all centrality measures
+        """
+        centrality_metrics = {}
+        
+        # 1. Degree Centrality (basic link popularity)
+        centrality_metrics['in_degree'] = nx.in_degree_centrality(self.graph)
+        centrality_metrics['out_degree'] = nx.out_degree_centrality(self.graph)
+        
+        # 2. Betweenness Centrality (bridge pages)
+        centrality_metrics['betweenness'] = nx.betweenness_centrality(self.graph, k=min(100, len(self.graph)))
+        
+        # 3. Closeness Centrality (accessibility)
+        centrality_metrics['closeness'] = self._calculate_closeness_centrality()
+        
+        # 4. Eigenvector Centrality (authority from authoritative sources)
+        centrality_metrics['eigenvector'] = self._calculate_eigenvector_centrality()
+        
+        # 5. Katz Centrality (alternative to eigenvector)
+        centrality_metrics['katz'] = self._calculate_katz_centrality()
+        
+        return centrality_metrics
+    
+    def _calculate_closeness_centrality(self) -> Dict:
+        """
+        Calculate closeness centrality using largest strongly connected component.
+        
+        Returns:
+            Dictionary of closeness centrality values
+        """
+        try:
+            scc_components = list(nx.strongly_connected_components(self.graph))
+            if scc_components:
+                largest_scc = max(scc_components, key=len)
+                if len(largest_scc) > 1:
+                    scc_subgraph = self.graph.subgraph(largest_scc)
+                    if (scc_subgraph is not None and 
+                        hasattr(scc_subgraph, 'number_of_nodes') and 
+                        scc_subgraph.number_of_nodes() > 0):
+                        return nx.closeness_centrality(scc_subgraph)
+            return {}
+        except Exception as e:
+            logger.warning(f"Could not calculate closeness centrality: {e}")
+            return {}
+    
+    def _calculate_eigenvector_centrality(self) -> Dict:
+        """
+        Calculate eigenvector centrality with error handling.
+        
+        Returns:
+            Dictionary of eigenvector centrality values
+        """
+        try:
+            return nx.eigenvector_centrality(self.graph, max_iter=1000)
+        except Exception as e:
+            logger.warning(f"Could not calculate eigenvector centrality: {e}")
+            return {}
+    
+    def _calculate_katz_centrality(self) -> Dict:
+        """
+        Calculate Katz centrality with error handling.
+        
+        Returns:
+            Dictionary of Katz centrality values
+        """
+        try:
+            return nx.katz_centrality(self.graph, max_iter=1000)
+        except Exception as e:
+            logger.warning(f"Could not calculate Katz centrality: {e}")
+            return {}
+    
+    def _combine_centrality_results(self, centrality_metrics: Dict) -> Dict:
+        """
+        Combine all centrality results into final format.
+        
+        Args:
+            centrality_metrics: Dictionary with all centrality measures
+            
+        Returns:
+            Dictionary with combined results for each node
+        """
+        all_urls = set(self.graph.nodes())
+        results = {}
+        
+        for url in all_urls:
+            node_data = self.graph.nodes[url]
+            results[url] = {
+                'url': url,
+                'title': node_data.get('title', ''),
+                'path': node_data.get('path', ''),
+                'pagerank': node_data.get('pagerank', 0.0),
+                'in_degree_centrality': centrality_metrics['in_degree'].get(url, 0.0),
+                'out_degree_centrality': centrality_metrics['out_degree'].get(url, 0.0),
+                'betweenness_centrality': centrality_metrics['betweenness'].get(url, 0.0),
+                'closeness_centrality': centrality_metrics['closeness'].get(url, 0.0),
+                'eigenvector_centrality': centrality_metrics['eigenvector'].get(url, 0.0),
+                'katz_centrality': centrality_metrics['katz'].get(url, 0.0)
+            }
+        
+        return results
+    
     def _count_internal_edges(self, community: Set[str]) -> int:
         """Count edges within a community."""
+        # Defensive None checks
+        if (self.graph is None or 
+            not hasattr(self.graph, 'neighbors') or 
+            not community):
+            return 0
+            
         count = 0
-        for node in community:
-            for neighbor in self.graph.neighbors(node):
-                if neighbor in community:
-                    count += 1
+        try:
+            for node in community:
+                if node in self.graph:
+                    try:
+                        for neighbor in self.graph.neighbors(node):
+                            if neighbor in community:
+                                count += 1
+                    except Exception as inner_e:
+                        logger.warning(f"Error accessing neighbors for node {node}: {inner_e}")
+                        continue
+        except Exception as e:
+            logger.warning(f"Error counting internal edges: {e}")
+            return 0
         return count
     
     def _count_external_edges(self, community: Set[str]) -> int:
         """Count edges from community to outside."""
+        # Defensive None checks
+        if (self.graph is None or 
+            not hasattr(self.graph, 'neighbors') or 
+            not community):
+            return 0
+            
         count = 0
-        for node in community:
-            for neighbor in self.graph.neighbors(node):
-                if neighbor not in community:
-                    count += 1
+        try:
+            for node in community:
+                if node in self.graph:
+                    try:
+                        for neighbor in self.graph.neighbors(node):
+                            if neighbor not in community:
+                                count += 1
+                    except Exception as inner_e:
+                        logger.warning(f"Error accessing neighbors for node {node}: {inner_e}")
+                        continue
+        except Exception as e:
+            logger.warning(f"Error counting external edges: {e}")
+            return 0
         return count
     
     def _generate_centrality_insights(self, results: Dict) -> List[str]:

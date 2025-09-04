@@ -56,8 +56,11 @@ class NetworkVisualizer:
             # Create directed graph
             G = nx.DiGraph()
             
-            # Get all pages
+            # Get all pages - defensive check
             pages_data = self.kuzu_manager.get_page_data()
+            if not pages_data:
+                logger.warning("No page data found, returning empty graph")
+                return G
             
             # Add nodes with attributes
             for page in pages_data:
@@ -75,28 +78,36 @@ class NetworkVisualizer:
                 
                 G.add_node(node_id, **attributes)
             
-            # Get all links
+            # Get all links - defensive check
             links_data = self.kuzu_manager.get_links_data()
+            if not links_data:
+                logger.warning("No links data found, graph will have isolated nodes")
+            else:
+                # Add edges
+                for link in links_data:
+                    source = link['source_url']
+                    target = link['target_url']
+                    
+                    # Only add edge if both nodes exist
+                    if source in G.nodes() and target in G.nodes():
+                        edge_attributes = {
+                            'anchor_text': link.get('anchor_text', ''),
+                            'link_type': link.get('link_type', 'internal')
+                        }
+                        G.add_edge(source, target, **edge_attributes)
             
-            # Add edges
-            for link in links_data:
-                source = link['source_url']
-                target = link['target_url']
+            # Defensive check before logging
+            if G is not None and hasattr(G, 'number_of_nodes'):
+                logger.info(f"Created NetworkX graph with {G.number_of_nodes()} nodes and {G.number_of_edges()} edges")
+            else:
+                logger.warning("Graph created but unable to access node count")
                 
-                # Only add edge if both nodes exist
-                if source in G.nodes() and target in G.nodes():
-                    edge_attributes = {
-                        'anchor_text': link.get('anchor_text', ''),
-                        'link_type': link.get('link_type', 'internal')
-                    }
-                    G.add_edge(source, target, **edge_attributes)
-            
-            logger.info(f"Created NetworkX graph with {G.number_of_nodes()} nodes and {G.number_of_edges()} edges")
             return G
             
         except Exception as e:
             logger.error(f"Error creating NetworkX graph: {e}")
-            raise
+            # Return empty graph instead of raising to prevent crashes
+            return nx.DiGraph()
     
     def calculate_layout_positions(self, G: nx.DiGraph, layout: str = "spring") -> Dict[str, Tuple[float, float]]:
         """
@@ -202,11 +213,14 @@ class NetworkVisualizer:
             Path to the created PNG file
         """
         try:
-            # Create the graph
+            # Create the graph with defensive checks
             G = self.create_networkx_graph(include_pagerank=True)
             
-            if G.number_of_nodes() == 0:
-                raise ValueError("No nodes in graph to visualize")
+            # Comprehensive None and empty graph validation
+            if (G is None or 
+                not hasattr(G, 'number_of_nodes') or 
+                G.number_of_nodes() == 0):
+                raise ValueError("No nodes in graph to visualize or invalid graph")
             
             # Calculate positions
             pos = self.calculate_layout_positions(G, layout)
@@ -235,7 +249,11 @@ class NetworkVisualizer:
                 else:
                     normalized_pr = [0.5] * len(pagerank_values)
             else:
-                normalized_pr = [0.5] * G.number_of_nodes()
+                # Defensive check before accessing graph methods
+                if G is not None and hasattr(G, 'number_of_nodes'):
+                    normalized_pr = [0.5] * G.number_of_nodes()
+                else:
+                    normalized_pr = [0.5]
             
             # Draw edges first (so they appear behind nodes)
             nx.draw_networkx_edges(
@@ -304,8 +322,8 @@ class NetworkVisualizer:
             
             # Add statistics text
             stats_text = f"""Graph Statistics:
-• Nodes: {G.number_of_nodes()}
-• Edges: {G.number_of_edges()}
+• Nodes: {G.number_of_nodes() if G and hasattr(G, 'number_of_nodes') else 0}
+• Edges: {G.number_of_edges() if G and hasattr(G, 'number_of_edges') else 0}
 • Pillar Pages: {len(node_categories['pillar'])}
 • Orphaned Pages: {len(node_categories['orphaned'])}
 • Avg PageRank: {np.mean(pagerank_values):.4f}
@@ -346,11 +364,14 @@ class NetworkVisualizer:
             Path to the created PNG file
         """
         try:
-            # Create the graph
+            # Create the graph with defensive checks
             G = self.create_networkx_graph(include_pagerank=True)
             
-            if G.number_of_nodes() == 0:
-                raise ValueError("No nodes in graph to visualize")
+            # Comprehensive None and empty graph validation
+            if (G is None or 
+                not hasattr(G, 'number_of_nodes') or 
+                G.number_of_nodes() == 0):
+                raise ValueError("No nodes in graph to visualize or invalid graph")
             
             # Set up subplots
             fig = plt.figure(figsize=figsize)
@@ -478,28 +499,51 @@ class NetworkVisualizer:
         """Draw network metrics summary."""
         # Calculate metrics
         try:
+            # Defensive checks before NetworkX operations
+            if G is None or not hasattr(G, 'nodes'):
+                raise ValueError("Invalid graph provided")
+                
             density = nx.density(G)
             avg_clustering = nx.average_clustering(G)
-            if nx.is_weakly_connected(G):
-                diameter = nx.diameter(G.to_undirected())
-            else:
-                diameter = "N/A (Disconnected)"
             
-            # Get largest component size
-            largest_cc = max(nx.weakly_connected_components(G), key=len)
-            largest_cc_size = len(largest_cc)
+            # Safe check for connectivity and diameter
+            try:
+                if nx.is_weakly_connected(G):
+                    undirected_g = G.to_undirected()
+                    if undirected_g is not None:
+                        diameter = nx.diameter(undirected_g)
+                    else:
+                        diameter = "N/A (Conversion failed)"
+                else:
+                    diameter = "N/A (Disconnected)"
+            except Exception as inner_e:
+                logger.warning(f"Error calculating diameter: {inner_e}")
+                diameter = "N/A (Error)"
             
-        except Exception:
-            density = nx.density(G)
+            # Get largest component size with defensive checks
+            try:
+                components = list(nx.weakly_connected_components(G))
+                if components:
+                    largest_cc = max(components, key=len)
+                    largest_cc_size = len(largest_cc)
+                else:
+                    largest_cc_size = G.number_of_nodes() if hasattr(G, 'number_of_nodes') else 0
+            except Exception as inner_e:
+                logger.warning(f"Error finding largest component: {inner_e}")
+                largest_cc_size = G.number_of_nodes() if hasattr(G, 'number_of_nodes') else 0
+            
+        except Exception as e:
+            logger.warning(f"Error calculating network metrics: {e}")
+            density = 0
             avg_clustering = 0
             diameter = "N/A"
-            largest_cc_size = G.number_of_nodes()
+            largest_cc_size = G.number_of_nodes() if G and hasattr(G, 'number_of_nodes') else 0
         
         # Create metrics text
         metrics_text = f"""Network Metrics:
 
-Nodes: {G.number_of_nodes()}
-Edges: {G.number_of_edges()}
+Nodes: {G.number_of_nodes() if G and hasattr(G, 'number_of_nodes') else 0}
+Edges: {G.number_of_edges() if G and hasattr(G, 'number_of_edges') else 0}
 
 Density: {density:.4f}
 Avg Clustering: {avg_clustering:.4f}
@@ -507,7 +551,7 @@ Diameter: {diameter}
 
 Largest Component:
 {largest_cc_size} nodes
-({100 * largest_cc_size / G.number_of_nodes():.1f}%)
+({100 * largest_cc_size / G.number_of_nodes() if G and hasattr(G, 'number_of_nodes') and G.number_of_nodes() > 0 else 0:.1f}%)
 
 Connectivity:
 {nx.number_weakly_connected_components(G)} weak components

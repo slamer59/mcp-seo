@@ -13,6 +13,7 @@ from unittest.mock import Mock, patch
 
 from mcp_seo.graph.kuzu_manager import KuzuManager
 from mcp_seo.graph.networkx_analyzer import NetworkXAnalyzer
+from mcp_seo.visualization.network_visualizer import NetworkVisualizer
 
 
 @pytest.fixture
@@ -256,6 +257,116 @@ class TestNetworkXAnalyzer:
         
         result = analyzer.find_connector_pages()
         assert 'error' in result
+    
+    def test_none_graph_defensive_handling(self):
+        """Test defensive handling of None graphs."""
+        mock_manager = Mock()
+        mock_manager.get_page_data.return_value = []
+        mock_manager.get_links_data.return_value = []
+        
+        analyzer = NetworkXAnalyzer(mock_manager)
+        
+        # Manually set graphs to None to test defensive checks
+        analyzer.graph = None
+        analyzer.undirected_graph = None
+        
+        # All methods should handle None graphs gracefully
+        result = analyzer.analyze_centrality()
+        assert 'error' in result
+        assert ('failed to build graph' in result['error'].lower() or 
+                'empty or invalid graph' in result['error'].lower())
+        
+        result = analyzer.detect_communities()
+        assert 'error' in result
+        assert ('failed to build graph' in result['error'].lower() or
+                'empty or invalid' in result['error'].lower())
+        
+        result = analyzer.analyze_paths()
+        assert 'error' in result
+        assert ('failed to build graph' in result['error'].lower() or
+                'empty or invalid graph' in result['error'].lower())
+        
+        result = analyzer.analyze_structure()
+        assert 'error' in result
+        assert ('failed to build graph' in result['error'].lower() or
+                'empty or invalid' in result['error'].lower())
+        
+        result = analyzer.find_connector_pages()
+        assert 'error' in result
+        assert ('failed to build graph' in result['error'].lower() or
+                'empty or invalid graph' in result['error'].lower())
+    
+    def test_empty_graph_handling(self):
+        """Test handling of empty but valid graphs."""
+        mock_manager = Mock()
+        mock_manager.get_page_data.return_value = []
+        mock_manager.get_links_data.return_value = []
+        
+        analyzer = NetworkXAnalyzer(mock_manager)
+        
+        # Build empty graphs (should create DiGraph() and Graph() with 0 nodes)
+        result = analyzer.build_networkx_graph()
+        assert result is False  # Should return False for no data
+        
+        # But graphs should be initialized to prevent None errors
+        assert analyzer.graph is not None
+        assert analyzer.undirected_graph is not None
+        
+        # Check that methods handle empty graphs appropriately
+        result = analyzer.analyze_centrality()
+        assert 'error' in result
+        
+    def test_single_node_graph_handling(self):
+        """Test handling of single-node graphs."""
+        single_page_data = [{
+            'url': 'https://example.com/',
+            'title': 'Homepage',
+            'path': '/',
+            'status_code': 200,
+            'in_degree': 0,
+            'out_degree': 0,
+            'pagerank': 1.0
+        }]
+        
+        mock_manager = Mock()
+        mock_manager.get_page_data.return_value = single_page_data
+        mock_manager.get_links_data.return_value = []  # No links
+        
+        analyzer = NetworkXAnalyzer(mock_manager)
+        result = analyzer.build_networkx_graph()
+        
+        assert result is True
+        assert analyzer.graph.number_of_nodes() == 1
+        assert analyzer.graph.number_of_edges() == 0
+        
+        # All analysis methods should handle single node gracefully
+        centrality_result = analyzer.analyze_centrality()
+        assert 'error' not in centrality_result
+        assert centrality_result['total_pages'] == 1
+        
+        # Community detection with single node
+        community_result = analyzer.detect_communities()
+        assert 'error' not in community_result
+        assert community_result['num_communities'] == 1
+        
+    def test_networkx_method_attribute_errors(self):
+        """Test handling when NetworkX objects lack expected methods."""
+        from unittest.mock import Mock, MagicMock
+        
+        mock_manager = Mock()
+        analyzer = NetworkXAnalyzer(mock_manager)
+        
+        # Create a mock graph that looks like NetworkX but doesn't have methods
+        mock_graph = Mock()
+        mock_graph.number_of_nodes.side_effect = AttributeError("No such attribute")
+        
+        analyzer.graph = mock_graph
+        analyzer.undirected_graph = mock_graph
+        
+        # Should handle the AttributeError gracefully
+        result = analyzer.analyze_centrality()
+        assert 'error' in result
+        assert 'empty or invalid graph' in result['error'].lower()
 
 
 class TestNetworkXTools:
@@ -364,6 +475,145 @@ class TestIntegrationWithRealData:
         """Test performance with larger graphs."""
         # This would test scalability with larger datasets
         pytest.skip("Performance test requires large dataset")
+
+
+class TestNetworkVisualizerDefensive:
+    """Test NetworkVisualizer defensive programming."""
+    
+    def test_visualizer_empty_graph_handling(self):
+        """Test that NetworkVisualizer handles empty graphs gracefully."""
+        mock_manager = Mock()
+        mock_manager.get_page_data.return_value = []
+        mock_manager.get_links_data.return_value = []
+        
+        visualizer = NetworkVisualizer(mock_manager)
+        
+        # Should create empty graph without crashing
+        G = visualizer.create_networkx_graph()
+        assert G is not None
+        assert hasattr(G, 'number_of_nodes')
+        assert G.number_of_nodes() == 0
+    
+    def test_visualizer_none_data_handling(self):
+        """Test that NetworkVisualizer handles None data gracefully."""
+        mock_manager = Mock()
+        mock_manager.get_page_data.return_value = None
+        mock_manager.get_links_data.return_value = None
+        
+        visualizer = NetworkVisualizer(mock_manager)
+        
+        # Should create empty graph even with None data
+        G = visualizer.create_networkx_graph()
+        assert G is not None
+        assert hasattr(G, 'number_of_nodes')
+        assert G.number_of_nodes() == 0
+    
+    def test_visualizer_pagerank_with_empty_graph(self):
+        """Test PageRank visualization with empty graph."""
+        import tempfile
+        import os
+        
+        mock_manager = Mock()
+        mock_manager.get_page_data.return_value = []
+        mock_manager.get_links_data.return_value = []
+        
+        visualizer = NetworkVisualizer(mock_manager)
+        
+        # Should raise ValueError for empty graph, not AttributeError
+        with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp:
+            try:
+                with pytest.raises(ValueError, match="No nodes in graph to visualize"):
+                    visualizer.create_pagerank_visualization(tmp.name)
+            finally:
+                os.unlink(tmp.name)
+
+
+class TestNoneTypeDefensiveProgramming:
+    """Test defensive programming against NoneType errors."""
+    
+    def test_graph_none_checks_centrality(self):
+        """Test that centrality analysis handles None graphs without crashing."""
+        mock_manager = Mock()
+        analyzer = NetworkXAnalyzer(mock_manager)
+        
+        # Set graphs to None explicitly
+        analyzer.graph = None
+        analyzer.undirected_graph = None
+        
+        # Should not raise AttributeError: 'NoneType' object has no attribute 'number_of_nodes'
+        result = analyzer.analyze_centrality()
+        assert isinstance(result, dict)
+        assert 'error' in result
+    
+    def test_graph_none_checks_communities(self):
+        """Test that community detection handles None graphs without crashing."""
+        mock_manager = Mock()
+        analyzer = NetworkXAnalyzer(mock_manager)
+        
+        analyzer.graph = None
+        analyzer.undirected_graph = None
+        
+        # Should not raise NoneType errors
+        result = analyzer.detect_communities()
+        assert isinstance(result, dict)
+        assert 'error' in result
+    
+    def test_graph_none_checks_paths(self):
+        """Test that path analysis handles None graphs without crashing."""
+        mock_manager = Mock()
+        analyzer = NetworkXAnalyzer(mock_manager)
+        
+        analyzer.graph = None
+        analyzer.undirected_graph = None
+        
+        # Should not raise NoneType errors
+        result = analyzer.analyze_paths()
+        assert isinstance(result, dict)
+        assert 'error' in result
+    
+    def test_graph_none_checks_structure(self):
+        """Test that structural analysis handles None graphs without crashing."""
+        mock_manager = Mock()
+        analyzer = NetworkXAnalyzer(mock_manager)
+        
+        analyzer.graph = None
+        analyzer.undirected_graph = None
+        
+        # Should not raise NoneType errors
+        result = analyzer.analyze_structure()
+        assert isinstance(result, dict)
+        assert 'error' in result
+    
+    def test_graph_none_checks_connectors(self):
+        """Test that connector analysis handles None graphs without crashing."""
+        mock_manager = Mock()
+        analyzer = NetworkXAnalyzer(mock_manager)
+        
+        analyzer.graph = None
+        analyzer.undirected_graph = None
+        
+        # Should not raise NoneType errors  
+        result = analyzer.find_connector_pages()
+        assert isinstance(result, dict)
+        assert 'error' in result
+    
+    def test_subgraph_none_handling(self):
+        """Test that subgraph operations handle None results."""
+        from unittest.mock import Mock, patch
+        import networkx as nx
+        
+        mock_manager = Mock()
+        analyzer = NetworkXAnalyzer(mock_manager)
+        
+        # Create a graph and patch subgraph to return None
+        analyzer.graph = nx.DiGraph()
+        analyzer.graph.add_node('test')
+        
+        with patch.object(analyzer.graph, 'subgraph', return_value=None):
+            # This should not crash even if subgraph returns None
+            result = analyzer.analyze_paths()
+            # It should still return a valid result structure
+            assert isinstance(result, dict)
 
 
 if __name__ == "__main__":
