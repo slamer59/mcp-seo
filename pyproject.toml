@@ -1,5 +1,5 @@
 [project]
-name = "mcp-data4seo"
+name = "mcp-seo"
 version = "1.0.0"
 description = "FastMCP server for comprehensive SEO analysis using DataForSEO API"
 readme = "README.md"
@@ -44,7 +44,7 @@ dev = [
 ]
 
 [project.scripts]
-mcp-data4seo = "mcp_seo.server:mcp.run"
+mcp-seo = "mcp_seo.server:mcp.run"
 
 [build-system]
 requires = ["hatchling"]
