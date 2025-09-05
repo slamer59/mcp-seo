@@ -93,7 +93,7 @@ class LinkGraphBuilder:
         try:
             async with aiohttp.ClientSession(
                 timeout=aiohttp.ClientTimeout(total=30),
-                headers={'User-Agent': 'MCP-Data4SEO-PageRank-Analyzer/1.0'}
+                headers={'User-Agent': 'MCP-SEO-PageRank-Analyzer/1.0'}
             ) as session:
                 logger.info(f"Fetching sitemap from {sitemap_url}")
                 async with session.get(sitemap_url) as response:
@@ -206,7 +206,7 @@ class LinkGraphBuilder:
 
             async with aiohttp.ClientSession(
                 timeout=aiohttp.ClientTimeout(total=30),
-                headers={'User-Agent': 'MCP-Data4SEO-PageRank-Analyzer/1.0'},
+                headers={'User-Agent': 'MCP-SEO-PageRank-Analyzer/1.0'},
                 connector=aiohttp.TCPConnector(limit=10)
             ) as session:
 
@@ -286,7 +286,7 @@ class LinkGraphBuilder:
 
             async with aiohttp.ClientSession(
                 timeout=aiohttp.ClientTimeout(total=30),
-                headers={'User-Agent': 'MCP-Data4SEO-PageRank-Analyzer/1.0'},
+                headers={'User-Agent': 'MCP-SEO-PageRank-Analyzer/1.0'},
                 connector=aiohttp.TCPConnector(limit=10)
             ) as session:
 
