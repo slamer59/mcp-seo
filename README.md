@@ -24,16 +24,16 @@ A powerful MCP (Model Context Protocol) server that provides **comprehensive SEO
 #### **Option 1: Direct from GitHub (Recommended)**
 ```bash
 # Install directly from GitHub repository
-uvx --from git+https://github.com/thomaspedot/mcp-seo mcp-seo
+uvx --from git+https://github.com/slamer59/mcp-seo mcp-seo
 
 # Or install in development mode
-uvx pip install git+https://github.com/thomaspedot/mcp-seo
+uvx pip install git+https://github.com/slamer59/mcp-seo
 ```
 
 #### **Option 2: Local Development Install**
 ```bash
 # Clone the repository
-git clone https://github.com/thomaspedot/mcp-seo
+git clone https://github.com/slamer59/mcp-seo
 cd mcp-seo
 
 # Install with uvx
@@ -61,7 +61,7 @@ Add to your Claude Code/OpenCoder MCP configuration:
   "mcpServers": {
     "mcp-seo": {
       "command": "uvx",
-      "args": ["--from", "git+https://github.com/thomaspedot/mcp-seo", "mcp-seo"],
+      "args": ["--from", "git+https://github.com/slamer59/mcp-seo", "mcp-seo"],
       "env": {
         "DATAFORSEO_LOGIN": "your_login",
         "DATAFORSEO_PASSWORD": "your_password"
@@ -273,7 +273,7 @@ pytest tests/ --cov=mcp_seo --cov-report=html
 
 ## 🔗 Links
 
-- **Repository**: https://github.com/thomaspedot/mcp-seo
+- **Repository**: https://github.com/slamer59/mcp-seo
 - **Documentation**: [Full API Documentation](./docs/)
 - **DataForSEO**: https://dataforseo.com/
 - **MCP Protocol**: https://modelcontextprotocol.io/
