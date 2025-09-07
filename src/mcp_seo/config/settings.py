@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     """Application settings with environment variable support."""
     
     # DataForSEO API credentials
-    dataforseo_username: Optional[str] = None
+    dataforseo_login: Optional[str] = None
     dataforseo_password: Optional[str] = None
     
     # MCP Server settings

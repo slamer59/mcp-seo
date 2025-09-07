@@ -22,12 +22,12 @@ class DataForSEOClient:
     def __init__(self, username: Optional[str] = None, password: Optional[str] = None):
         """Initialize DataForSEO client with credentials."""
         settings = get_settings()
-        self.username = username or settings.dataforseo_username
+        self.username = username or settings.dataforseo_login
         self.password = password or settings.dataforseo_password
         
         if not self.username or not self.password:
             raise ValueError(
-                "DataForSEO credentials required. Set DATAFORSEO_USERNAME and "
+                "DataForSEO credentials required. Set DATAFORSEO_LOGIN and "
                 "DATAFORSEO_PASSWORD environment variables or pass directly."
             )
         

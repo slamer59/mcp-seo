@@ -109,9 +109,9 @@ def main():
     print("=" * 60)
     
     # Check if credentials are set up
-    if not os.getenv("DATAFORSEO_USERNAME") or not os.getenv("DATAFORSEO_PASSWORD"):
+    if not os.getenv("DATAFORSEO_LOGIN") or not os.getenv("DATAFORSEO_PASSWORD"):
         print("❌ DataForSEO credentials not found!")
-        print("   Please set DATAFORSEO_USERNAME and DATAFORSEO_PASSWORD environment variables")
+        print("   Please set DATAFORSEO_LOGIN and DATAFORSEO_PASSWORD environment variables")
         print("   or create a .env file with your credentials.")
         return
     
