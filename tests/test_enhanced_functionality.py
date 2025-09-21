@@ -5,16 +5,21 @@ Tests the enhanced components that are available and working,
 focusing on achievable test coverage goals.
 """
 
-import pytest
 import tempfile
 from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import MagicMock, Mock, patch
 
-from mcp_seo.tools.keyword_analyzer import KeywordAnalyzer
+import pytest
+
 from mcp_seo.engines.recommendation_engine import (
-    SEORecommendationEngine, SEORecommendation, SeverityLevel, RecommendationType, SEOScore
+    RecommendationType,
+    SEORecommendation,
+    SEORecommendationEngine,
+    SEOScore,
+    SeverityLevel,
 )
 from mcp_seo.reporting import SEOReporter
+from mcp_seo.tools.keyword_analyzer import KeywordAnalyzer
 from mcp_seo.utils.rich_reporter import SEOReporter as RichReporter
 
 
@@ -28,41 +33,47 @@ class TestEnhancedKeywordAnalyzer:
 
         # Mock keyword data response
         client.get_keyword_data.return_value = {
-            "tasks": [{
-                "id": "test_task_123",
-                "status_code": 20000
-            }]
+            "tasks": [{"id": "test_task_123", "status_code": 20000}]
         }
 
         # Mock task completion response
         client.wait_for_task_completion.return_value = {
-            "tasks": [{
-                "result": [{
-                    "keyword": "seo tools",
-                    "search_volume": 5400,
-                    "cpc": 2.50,
-                    "competition": 0.85,
-                    "competition_level": "HIGH"
-                }, {
-                    "keyword": "keyword research",
-                    "search_volume": 8100,
-                    "cpc": 3.20,
-                    "competition": 0.75,
-                    "competition_level": "HIGH"
-                }]
-            }]
+            "tasks": [
+                {
+                    "result": [
+                        {
+                            "keyword": "seo tools",
+                            "search_volume": 5400,
+                            "cpc": 2.50,
+                            "competition": 0.85,
+                            "competition_level": "HIGH",
+                        },
+                        {
+                            "keyword": "keyword research",
+                            "search_volume": 8100,
+                            "cpc": 3.20,
+                            "competition": 0.75,
+                            "competition_level": "HIGH",
+                        },
+                    ]
+                }
+            ]
         }
 
         # Mock suggestions response
         client.get_keyword_suggestions.return_value = {
-            "tasks": [{
-                "result": [{
-                    "keyword": "seo audit tools",
-                    "search_volume": 1200,
-                    "cpc": 4.10,
-                    "competition": 0.65
-                }]
-            }]
+            "tasks": [
+                {
+                    "result": [
+                        {
+                            "keyword": "seo audit tools",
+                            "search_volume": 1200,
+                            "cpc": 4.10,
+                            "competition": 0.65,
+                        }
+                    ]
+                }
+            ]
         }
 
         return client
@@ -76,19 +87,20 @@ class TestEnhancedKeywordAnalyzer:
     def sample_keyword_request(self):
         """Sample keyword analysis request."""
         from mcp_seo.models.seo_models import KeywordAnalysisRequest
+
         return KeywordAnalysisRequest(
             keywords=["seo tools", "keyword research"],
             location="United States",
             language="English",
-            include_suggestions=True
+            include_suggestions=True,
         )
 
     def test_keyword_analyzer_initialization(self, keyword_analyzer):
         """Test Enhanced Keyword Analyzer initialization."""
         assert keyword_analyzer is not None
-        assert hasattr(keyword_analyzer, 'client')
-        assert hasattr(keyword_analyzer, 'recommendation_engine')
-        assert hasattr(keyword_analyzer, 'reporter')
+        assert hasattr(keyword_analyzer, "client")
+        assert hasattr(keyword_analyzer, "recommendation_engine")
+        assert hasattr(keyword_analyzer, "reporter")
 
     def test_keyword_analysis_workflow(self, keyword_analyzer, sample_keyword_request):
         """Test keyword analysis workflow functionality."""
@@ -143,18 +155,18 @@ class TestSEORecommendationEngine:
             "high volume keyword": {
                 "search_volume": {"search_volume": 5000},
                 "difficulty": {"difficulty": 60},
-                "position": None  # Not ranking
+                "position": None,  # Not ranking
             },
             "ranking keyword": {
                 "search_volume": {"search_volume": 1200},
                 "difficulty": {"difficulty": 45},
-                "position": 15  # Low ranking
+                "position": 15,  # Low ranking
             },
             "good ranking keyword": {
                 "search_volume": {"search_volume": 800},
                 "difficulty": {"difficulty": 40},
-                "position": 5  # Good ranking
-            }
+                "position": 5,  # Good ranking
+            },
         }
 
     @pytest.fixture
@@ -165,52 +177,60 @@ class TestSEORecommendationEngine:
                 "critical_issues": 3,
                 "high_priority_issues": 5,
                 "duplicate_title_tags": 8,
-                "duplicate_meta_descriptions": 12
+                "duplicate_meta_descriptions": 12,
             }
         }
 
     def test_recommendation_engine_initialization(self, recommendation_engine):
         """Test recommendation engine initialization."""
         assert recommendation_engine is not None
-        assert hasattr(recommendation_engine, 'recommendations')
-        assert hasattr(recommendation_engine, 'score_weights')
+        assert hasattr(recommendation_engine, "recommendations")
+        assert hasattr(recommendation_engine, "score_weights")
 
-    def test_keyword_performance_analysis(self, recommendation_engine, sample_keyword_data):
+    def test_keyword_performance_analysis(
+        self, recommendation_engine, sample_keyword_data
+    ):
         """Test keyword performance analysis and recommendations."""
-        recommendations = recommendation_engine.analyze_keyword_performance(sample_keyword_data)
+        recommendations = recommendation_engine.analyze_keyword_performance(
+            sample_keyword_data
+        )
 
         assert len(recommendations) > 0
 
         # Should identify missing high-volume keywords
-        missing_keyword_recs = [r for r in recommendations
-                              if "High-Volume Missing Keywords" in r.title]
+        missing_keyword_recs = [
+            r for r in recommendations if "High-Volume Missing Keywords" in r.title
+        ]
         assert len(missing_keyword_recs) > 0
 
         # Should identify low rankings
-        low_ranking_recs = [r for r in recommendations
-                           if "Low-Ranking" in r.title]
+        low_ranking_recs = [r for r in recommendations if "Low-Ranking" in r.title]
         assert len(low_ranking_recs) > 0
 
     def test_technical_issues_analysis(self, recommendation_engine, sample_onpage_data):
         """Test technical SEO issue analysis."""
-        recommendations = recommendation_engine.analyze_technical_issues(sample_onpage_data)
+        recommendations = recommendation_engine.analyze_technical_issues(
+            sample_onpage_data
+        )
 
         assert len(recommendations) >= 2
 
         # Should identify critical issues
-        critical_recs = [r for r in recommendations if r.priority == SeverityLevel.CRITICAL]
+        critical_recs = [
+            r for r in recommendations if r.priority == SeverityLevel.CRITICAL
+        ]
         assert len(critical_recs) > 0
 
         # Should identify duplicate content issues
-        duplicate_recs = [r for r in recommendations
-                         if "Duplicate Content" in r.title]
+        duplicate_recs = [r for r in recommendations if "Duplicate Content" in r.title]
         assert len(duplicate_recs) > 0
 
-    def test_comprehensive_recommendations(self, recommendation_engine, sample_keyword_data, sample_onpage_data):
+    def test_comprehensive_recommendations(
+        self, recommendation_engine, sample_keyword_data, sample_onpage_data
+    ):
         """Test comprehensive recommendation generation."""
         result = recommendation_engine.generate_comprehensive_recommendations(
-            keyword_data=sample_keyword_data,
-            onpage_data=sample_onpage_data
+            keyword_data=sample_keyword_data, onpage_data=sample_onpage_data
         )
 
         assert "seo_score" in result
@@ -220,7 +240,7 @@ class TestSEORecommendationEngine:
 
         # Verify SEO score structure
         seo_score = result["seo_score"]
-        assert hasattr(seo_score, 'overall_score')
+        assert hasattr(seo_score, "overall_score")
         assert 0 <= seo_score.overall_score <= 100
 
         # Verify action plan structure
@@ -239,7 +259,7 @@ class TestSEORecommendationEngine:
                 category=RecommendationType.TECHNICAL,
                 impact="High",
                 effort="High",
-                affected_pages=10
+                affected_pages=10,
             ),
             SEORecommendation(
                 title="Medium Issue",
@@ -248,7 +268,7 @@ class TestSEORecommendationEngine:
                 category=RecommendationType.CONTENT,
                 impact="Medium",
                 effort="Low",
-                affected_pages=5
+                affected_pages=5,
             ),
             SEORecommendation(
                 title="High Issue",
@@ -257,8 +277,8 @@ class TestSEORecommendationEngine:
                 category=RecommendationType.KEYWORDS,
                 impact="High",
                 effort="Medium",
-                affected_pages=15
-            )
+                affected_pages=15,
+            ),
         ]
 
         prioritized = recommendation_engine._prioritize_recommendations(recommendations)
@@ -292,22 +312,22 @@ class TestEnhancedReporting:
                     "search_volume": 5400,
                     "cpc": 2.50,
                     "competition": 0.85,
-                    "difficulty_score": 75
+                    "difficulty_score": 75,
                 },
                 {
                     "keyword": "keyword research",
                     "search_volume": 8100,
                     "cpc": 3.20,
                     "competition": 0.75,
-                    "difficulty_score": 68
-                }
+                    "difficulty_score": 68,
+                },
             ],
             "analysis_summary": {
                 "total_keywords": 2,
                 "avg_search_volume": 6750,
                 "avg_competition": 0.80,
-                "high_volume_count": 2
-            }
+                "high_volume_count": 2,
+            },
         }
 
     def test_plain_text_keyword_report(self, seo_reporter, sample_keyword_data):
@@ -323,14 +343,14 @@ class TestEnhancedReporting:
     def test_rich_reporter_initialization(self, rich_reporter):
         """Test Rich Reporter initialization."""
         assert rich_reporter is not None
-        assert hasattr(rich_reporter, 'console')
+        assert hasattr(rich_reporter, "console")
 
     def test_report_generation_workflow(self, seo_reporter):
         """Test report generation workflow doesn't crash."""
         # Test with minimal data
         minimal_data = {
             "keywords_data": [{"keyword": "test", "search_volume": 100}],
-            "analysis_summary": {"total_keywords": 1}
+            "analysis_summary": {"total_keywords": 1},
         }
 
         result = seo_reporter.generate_keyword_report(minimal_data)
@@ -360,18 +380,28 @@ class TestEnhancedWorkflow:
         # Mock keyword analyzer results
         keyword_results = {
             "keywords_data": [
-                {"keyword": "seo tools", "search_volume": 5000, "competition": 0.8, "position": None},
-                {"keyword": "keyword research", "search_volume": 3000, "competition": 0.6, "position": 15}
+                {
+                    "keyword": "seo tools",
+                    "search_volume": 5000,
+                    "competition": 0.8,
+                    "position": None,
+                },
+                {
+                    "keyword": "keyword research",
+                    "search_volume": 3000,
+                    "competition": 0.6,
+                    "position": 15,
+                },
             ]
         }
 
         # Convert to recommendation engine format
         keyword_performance_data = {}
         for kw in keyword_results["keywords_data"]:
-            keyword_performance_data[kw['keyword']] = {
-                'search_volume': {'search_volume': kw['search_volume']},
-                'competition': {'competition': kw['competition']},
-                'position': kw.get('position')
+            keyword_performance_data[kw["keyword"]] = {
+                "search_volume": {"search_volume": kw["search_volume"]},
+                "competition": {"competition": kw["competition"]},
+                "position": kw.get("position"),
             }
 
         # Generate recommendations
@@ -394,7 +424,7 @@ class TestEnhancedWorkflow:
                 priority=SeverityLevel.HIGH,
                 category=RecommendationType.TECHNICAL,
                 impact="High",
-                effort="Medium"
+                effort="Medium",
             )
         ]
 
@@ -412,7 +442,7 @@ class TestEnhancedWorkflow:
         # Test data flow
         sample_data = {
             "keywords_data": [{"keyword": "test", "search_volume": 1000}],
-            "analysis_summary": {"total_keywords": 1}
+            "analysis_summary": {"total_keywords": 1},
         }
 
         # Generate report
@@ -421,7 +451,9 @@ class TestEnhancedWorkflow:
         assert "test" in report
 
         # Generate recommendations (this should not crash)
-        keyword_perf_data = {"test": {"search_volume": {"search_volume": 1000}, "position": None}}
+        keyword_perf_data = {
+            "test": {"search_volume": {"search_volume": 1000}, "position": None}
+        }
         recommendations = engine.analyze_keyword_performance(keyword_perf_data)
         assert isinstance(recommendations, list)
 
@@ -430,9 +462,9 @@ class TestEnhancedWorkflow:
 def test_enhanced_imports():
     """Test that Enhanced modules can be imported successfully."""
     # Test that we can import the enhanced components
-    from mcp_seo.tools.keyword_analyzer import KeywordAnalyzer
     from mcp_seo.engines.recommendation_engine import SEORecommendationEngine
     from mcp_seo.reporting import SEOReporter
+    from mcp_seo.tools.keyword_analyzer import KeywordAnalyzer
 
     assert KeywordAnalyzer is not None
     assert SEORecommendationEngine is not None
@@ -448,7 +480,7 @@ def test_recommendation_data_structures():
         priority=SeverityLevel.HIGH,
         category=RecommendationType.TECHNICAL,
         impact="High",
-        effort="Medium"
+        effort="Medium",
     )
 
     assert rec.title == "Test Recommendation"
@@ -462,7 +494,7 @@ def test_recommendation_data_structures():
         content_score=70,
         keywords_score=75,
         links_score=80,
-        breakdown={"technical": {"score": 80, "weight": 0.25}}
+        breakdown={"technical": {"score": 80, "weight": 0.25}},
     )
 
     assert score.overall_score == 75
@@ -477,6 +509,10 @@ def test_enhanced_enums():
     assert SeverityLevel.HIGH.value == "high"
     assert SeverityLevel.MEDIUM.value == "medium"
 
+    # Test RecommendationType enum
+    assert RecommendationType.TECHNICAL.value == "technical"
+    assert RecommendationType.CONTENT.value == "content"
+    assert RecommendationType.KEYWORDS.value == "keywords"
     # Test RecommendationType enum
     assert RecommendationType.TECHNICAL.value == "technical"
     assert RecommendationType.CONTENT.value == "content"

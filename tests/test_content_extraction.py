@@ -7,12 +7,13 @@ Basic tests to verify that the extracted components from GitAlchemy
 Kuzu PageRank analyzer work correctly in the MCP SEO environment.
 """
 
-import pytest
 import tempfile
 from pathlib import Path
-from typing import Dict, Any
+from typing import Any, Dict
 
-from mcp_seo.content import MarkdownParser, BlogAnalyzer, LinkOptimizer
+import pytest
+
+from mcp_seo.content import BlogAnalyzer, LinkOptimizer, MarkdownParser
 
 
 @pytest.fixture

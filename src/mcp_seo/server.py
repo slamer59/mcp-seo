@@ -3,24 +3,25 @@ FastMCP SEO Analysis Server using DataForSEO API.
 Provides comprehensive SEO analysis tools through MCP protocol.
 """
 
-import json
 import asyncio
-from typing import Dict, Any, List, Optional, Union
+import json
+from typing import Any, Dict, List, Optional, Union
+
 from fastmcp import FastMCP
-from pydantic import BaseModel, HttpUrl, Field, validator
+from pydantic import BaseModel, Field, HttpUrl, validator
 
+from mcp_seo.config.settings import (get_language_code, get_location_code,
+                                     get_settings)
 # Import our modules
-from mcp_seo.dataforseo.client import DataForSEOClient, ApiException
-from mcp_seo.tools.onpage_analyzer import OnPageAnalyzer
-from mcp_seo.tools.keyword_analyzer import KeywordAnalyzer
+from mcp_seo.dataforseo.client import ApiException, DataForSEOClient
+from mcp_seo.models.seo_models import (AnalysisStatus, ContentAnalysisRequest,
+                                       DeviceType, DomainAnalysisRequest,
+                                       KeywordAnalysisRequest,
+                                       OnPageAnalysisRequest, SEOAuditRequest,
+                                       SERPAnalysisRequest)
 from mcp_seo.tools.competitor_analyzer import CompetitorAnalyzer
-from mcp_seo.models.seo_models import (
-    OnPageAnalysisRequest, KeywordAnalysisRequest, SERPAnalysisRequest,
-    DomainAnalysisRequest, ContentAnalysisRequest, SEOAuditRequest,
-    DeviceType, AnalysisStatus
-)
-from mcp_seo.config.settings import get_settings, get_location_code, get_language_code
-
+from mcp_seo.tools.keyword_analyzer import KeywordAnalyzer
+from mcp_seo.tools.onpage_analyzer import OnPageAnalyzer
 
 # Initialize FastMCP server
 mcp = FastMCP("FastMCP SEO Analysis Server")
@@ -656,7 +657,7 @@ def comprehensive_seo_audit(params: Dict[str, Any]) -> Dict[str, Any]:
 try:
     from mcp_seo.tools.graph.pagerank_tools import register_pagerank_tools
     register_pagerank_tools(mcp)
-except ImportError as e:
+except (ImportError, NameError) as e:
     print(f"Warning: PageRank tools not available: {e}")
     print("Install additional dependencies: kuzu, aiohttp, beautifulsoup4, numpy")
 

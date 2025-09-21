@@ -239,7 +239,7 @@ class TestMCPToolsSimple:
             max_pages=50,
             damping_factor=0.85
         )
-        assert pagerank_req.domain == "https://example.com"
+        assert str(pagerank_req.domain) == "https://example.com/"
         assert pagerank_req.max_pages == 50
         
         # Test validation errors
@@ -260,7 +260,7 @@ class TestMCPToolsSimple:
         assert pillar_req.percentile == 90.0  # Default
         
         orphan_req = OrphanedPagesRequest(domain="https://example.com")
-        assert orphan_req.domain == "https://example.com"
+        assert str(orphan_req.domain) == "https://example.com/"
 
     def test_graph_stats_accuracy(self):
         """Test that graph statistics are accurate."""

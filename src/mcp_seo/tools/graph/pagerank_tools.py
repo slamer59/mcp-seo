@@ -13,19 +13,168 @@ from mcp_seo.graph.kuzu_manager import KuzuManager
 from mcp_seo.graph.link_graph_builder import LinkGraphBuilder
 from mcp_seo.graph.pagerank_analyzer import PageRankAnalyzer
 
-# Import request models from the original version
-from .pagerank_tools_original import (
-    LinkGraphRequest,
-    OrphanedPagesRequest,
-    PageRankRequest,
-    PillarPagesRequest,
-    register_pagerank_tools,
-)
+# Import FastMCP and Pydantic for request models
+from fastmcp import FastMCP
+from pydantic import BaseModel, Field, HttpUrl
 
 logger = logging.getLogger(__name__)
 
 
-async def analyze_pagerank(request: PageRankRequest) -> Dict:
+class PageRankRequest(BaseModel):
+    """Request model for PageRank analysis."""
+
+    domain: HttpUrl = Field(description="Domain to analyze (e.g., https://example.com)")
+    max_pages: int = Field(
+        default=100, ge=1, le=1000, description="Maximum pages to analyze"
+    )
+    damping_factor: float = Field(
+        default=0.85, ge=0.0, le=1.0, description="PageRank damping factor"
+    )
+    max_iterations: int = Field(
+        default=100, ge=1, le=1000, description="Maximum PageRank iterations"
+    )
+    use_sitemap: bool = Field(
+        default=True, description="Use sitemap.xml for page discovery"
+    )
+
+
+class LinkGraphRequest(BaseModel):
+    """Request model for link graph building."""
+
+    domain: HttpUrl = Field(description="Domain to analyze")
+    max_pages: int = Field(
+        default=100, ge=1, le=1000, description="Maximum pages to crawl"
+    )
+    use_sitemap: bool = Field(
+        default=True, description="Use sitemap.xml for page discovery"
+    )
+    urls: Optional[List[HttpUrl]] = Field(
+        default=None, description="Specific URLs to analyze (if not using sitemap)"
+    )
+
+
+class PillarPagesRequest(BaseModel):
+    """Request model for pillar pages identification."""
+
+    domain: HttpUrl = Field(description="Domain to analyze")
+    percentile: float = Field(
+        default=90.0,
+        ge=50.0,
+        le=99.0,
+        description="Percentile threshold for pillar pages",
+    )
+    limit: int = Field(
+        default=10, ge=1, le=50, description="Maximum number of pillar pages to return"
+    )
+
+
+class OrphanedPagesRequest(BaseModel):
+    """Request model for orphaned pages detection."""
+
+    domain: HttpUrl = Field(description="Domain to analyze")
+
+
+def register_pagerank_tools(mcp: FastMCP):
+    """Register PageRank analysis tools with the MCP server."""
+
+    @mcp.tool()
+    async def analyze_pagerank(
+        domain: str,
+        max_pages: int = 100,
+        damping_factor: float = 0.85,
+        max_iterations: int = 100,
+        use_sitemap: bool = True,
+    ) -> Dict:
+        """
+        Analyze PageRank for a website's internal link structure.
+
+        This tool crawls a website, builds an internal link graph using Kuzu database,
+        and calculates PageRank scores to identify authoritative pages.
+
+        Returns comprehensive analysis including pillar pages, orphaned pages,
+        and optimization recommendations.
+        """
+        # Create PageRankRequest from individual parameters for validation
+        request = PageRankRequest(
+            domain=domain,
+            max_pages=max_pages,
+            damping_factor=damping_factor,
+            max_iterations=max_iterations,
+            use_sitemap=use_sitemap,
+        )
+        return await analyze_pagerank_standalone(request)
+
+    @mcp.tool()
+    async def build_link_graph(
+        domain: str,
+        max_pages: int = 100,
+        use_sitemap: bool = True,
+        urls: Optional[List[str]] = None,
+    ) -> Dict:
+        """
+        Build internal link graph for a website.
+
+        Crawls website pages and creates a graph database of internal links
+        for subsequent PageRank analysis and link optimization.
+
+        Returns graph statistics and basic link structure metrics.
+        """
+        # Create LinkGraphRequest from individual parameters for validation
+        request = LinkGraphRequest(
+            domain=domain, max_pages=max_pages, use_sitemap=use_sitemap, urls=urls
+        )
+        return await build_link_graph_standalone(request)
+
+    @mcp.tool()
+    async def find_pillar_pages(
+        domain: str, percentile: float = 90.0, limit: int = 10
+    ) -> Dict:
+        """
+        Identify pillar pages with high PageRank authority.
+
+        Requires an existing PageRank analysis. Identifies the most authoritative
+        pages based on PageRank scores for content strategy and navigation optimization.
+        """
+        # Create PillarPagesRequest from individual parameters for validation
+        request = PillarPagesRequest(
+            domain=domain, percentile=percentile, limit=limit
+        )
+        return await find_pillar_pages_standalone(request)
+
+    @mcp.tool()
+    async def find_orphaned_pages(domain: str) -> Dict:
+        """
+        Find orphaned pages with no incoming internal links.
+
+        Identifies pages that have no incoming links and are therefore
+        difficult to discover and missing potential link equity.
+        """
+        # Create OrphanedPagesRequest from individual parameters for validation
+        request = OrphanedPagesRequest(domain=domain)
+        return await find_orphaned_pages_standalone(request)
+
+    @mcp.tool()
+    async def optimize_internal_links(
+        domain: str,
+        max_pages: int = 100,
+        use_sitemap: bool = True,
+        urls: Optional[List[str]] = None,
+    ) -> Dict:
+        """
+        Generate internal link optimization recommendations.
+
+        Analyzes current link structure and provides specific recommendations
+        for improving internal linking, link equity distribution, and page discovery.
+        """
+        # Create LinkGraphRequest from individual parameters for validation
+        request = LinkGraphRequest(
+            domain=domain, max_pages=max_pages, use_sitemap=use_sitemap, urls=urls
+        )
+        return await optimize_internal_links_standalone(request)
+
+
+# Standalone function versions (renamed to avoid conflicts with MCP tools)
+async def analyze_pagerank_standalone(request: PageRankRequest) -> Dict:
     """
     Analyze PageRank for a website's internal link structure.
 
@@ -88,7 +237,7 @@ async def analyze_pagerank(request: PageRankRequest) -> Dict:
         return {"error": str(e)}
 
 
-async def build_link_graph(request: LinkGraphRequest) -> Dict:
+async def build_link_graph_standalone(request: LinkGraphRequest) -> Dict:
     """
     Build internal link graph for a website.
 
@@ -164,7 +313,7 @@ async def build_link_graph(request: LinkGraphRequest) -> Dict:
         return {"error": str(e)}
 
 
-async def find_pillar_pages(request: PillarPagesRequest) -> Dict:
+async def find_pillar_pages_standalone(request: PillarPagesRequest) -> Dict:
     """
     Identify pillar pages with high PageRank authority.
 
@@ -208,7 +357,7 @@ async def find_pillar_pages(request: PillarPagesRequest) -> Dict:
         return {"error": str(e)}
 
 
-async def find_orphaned_pages(request: OrphanedPagesRequest) -> Dict:
+async def find_orphaned_pages_standalone(request: OrphanedPagesRequest) -> Dict:
     """
     Find orphaned pages with no incoming internal links.
 
@@ -272,7 +421,7 @@ async def find_orphaned_pages(request: OrphanedPagesRequest) -> Dict:
         return {"error": str(e)}
 
 
-async def optimize_internal_links(request: LinkGraphRequest) -> Dict:
+async def optimize_internal_links_standalone(request: LinkGraphRequest) -> Dict:
     """
     Generate internal link optimization recommendations.
 
@@ -347,6 +496,13 @@ async def optimize_internal_links(request: LinkGraphRequest) -> Dict:
         logger.error(f"Error generating optimization recommendations: {e}")
         return {"error": str(e)}
 
+
+# Backward compatibility aliases for standalone functions
+analyze_pagerank = analyze_pagerank_standalone
+build_link_graph = build_link_graph_standalone
+find_pillar_pages = find_pillar_pages_standalone
+find_orphaned_pages = find_orphaned_pages_standalone
+optimize_internal_links = optimize_internal_links_standalone
 
 # Export all the functions and classes
 __all__ = [
