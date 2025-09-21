@@ -1,0 +1,11 @@
+slug,title,pillar_score,pagerank,authority_score,in_degree,word_count
+basic-operations,Basic Operations,0.14437371055039347,0.01949899664151197,0.11000894440786703,1,2431
+what-is-gitlab,What is GitLab?,0.13196137316104264,0.019982911441115497,0.06798926671055956,1,2686
+search-files-code-snippets,Search for Specific Files or Code Snippets,0.10683176905739775,0.017079422643494345,-0.0,0,2006
+team-communication,Team Communication,0.10683176905739775,0.017079422643494345,-0.0,0,2413
+project-monitoring,Project Monitoring,0.10683176905739775,0.017079422643494345,-0.0,0,2591
+track-project-progress-activities,Track Project Progress and Recent Activities,0.10683176905739775,0.017079422643494345,-0.0,0,2331
+repository-browsing,Repository Browsing,0.10683176905739775,0.017079422643494345,-0.0,0,2478
+notification-management,Notification Management,0.10683176905739775,0.017079422643494345,-0.0,0,2040
+labels-milestones-organization,Use Labels and Milestones for Organization,0.10683176905739775,0.017079422643494345,-0.0,0,2365
+customize-notification-settings,Customize Notification Settings for Priority Items,0.10683176905739775,0.017079422643494345,-0.0,0,2308
