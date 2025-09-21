@@ -60,15 +60,20 @@ class LinkGraphBuilder:
     def is_internal_url(self, url: str) -> bool:
         """
         Check if URL is internal to the base domain.
-        
+
         Args:
             url: URL to check
-            
+
         Returns:
             True if URL is internal
         """
         parsed_base = urlparse(self.base_url)
         parsed_url = urlparse(url)
+
+        # Special schemes are considered external
+        special_schemes = {'mailto', 'tel', 'ftp', 'file', 'javascript', 'data'}
+        if parsed_url.scheme in special_schemes:
+            return False
 
         # Extract base domain (remove www. if present)
         base_domain = parsed_base.netloc.replace('www.', '') if parsed_base.netloc.startswith('www.') else parsed_base.netloc
@@ -76,8 +81,7 @@ class LinkGraphBuilder:
 
         return (
             url_domain == base_domain or
-            parsed_url.netloc == '' or
-            url_domain.endswith(base_domain)
+            parsed_url.netloc == ''
         )
 
     async def fetch_sitemap(self) -> List[str]:

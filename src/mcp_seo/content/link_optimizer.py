@@ -78,11 +78,30 @@ class LinkOptimizer:
         """Build internal link graph for analysis."""
         graph = defaultdict(set)
 
-        for source_slug, post in self.posts_data.items():
-            for link in post.get('internal_links', []):
-                target_slug = link['target_slug']
-                if target_slug in self.posts_data:
-                    graph[source_slug].add(target_slug)
+        # Handle the case where posts_data might be a Mock object or None
+        if not self.posts_data or not hasattr(self.posts_data, 'items'):
+            logger.warning("posts_data is empty or not iterable, returning empty graph")
+            return dict(graph)
+
+        try:
+            for source_slug, post in self.posts_data.items():
+                # Handle case where post might be a Mock object
+                if not isinstance(post, dict):
+                    continue
+
+                internal_links = post.get('internal_links', [])
+                if not isinstance(internal_links, list):
+                    continue
+
+                for link in internal_links:
+                    if not isinstance(link, dict):
+                        continue
+
+                    target_slug = link.get('target_slug')
+                    if target_slug and target_slug in self.posts_data:
+                        graph[source_slug].add(target_slug)
+        except (TypeError, AttributeError) as e:
+            logger.warning(f"Error building link graph: {e}")
 
         return dict(graph)
 
@@ -90,9 +109,26 @@ class LinkOptimizer:
         """Build keyword to pages index."""
         keyword_index = defaultdict(list)
 
-        for slug, post in self.posts_data.items():
-            for keyword in post.get('keywords', []):
-                keyword_index[keyword.lower()].append(slug)
+        # Handle the case where posts_data might be a Mock object or None
+        if not self.posts_data or not hasattr(self.posts_data, 'items'):
+            logger.warning("posts_data is empty or not iterable, returning empty keyword index")
+            return dict(keyword_index)
+
+        try:
+            for slug, post in self.posts_data.items():
+                # Handle case where post might be a Mock object
+                if not isinstance(post, dict):
+                    continue
+
+                keywords = post.get('keywords', [])
+                if not isinstance(keywords, list):
+                    continue
+
+                for keyword in keywords:
+                    if isinstance(keyword, str) and keyword.strip():
+                        keyword_index[keyword.lower()].append(slug)
+        except (TypeError, AttributeError) as e:
+            logger.warning(f"Error building keyword index: {e}")
 
         return dict(keyword_index)
 

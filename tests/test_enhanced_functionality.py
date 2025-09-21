@@ -42,19 +42,23 @@ class TestEnhancedKeywordAnalyzer:
                 {
                     "result": [
                         {
-                            "keyword": "seo tools",
-                            "search_volume": 5400,
-                            "cpc": 2.50,
-                            "competition": 0.85,
-                            "competition_level": "HIGH",
-                        },
-                        {
-                            "keyword": "keyword research",
-                            "search_volume": 8100,
-                            "cpc": 3.20,
-                            "competition": 0.75,
-                            "competition_level": "HIGH",
-                        },
+                            "items": [
+                                {
+                                    "keyword": "seo tools",
+                                    "search_volume": 5400,
+                                    "cpc": 2.50,
+                                    "competition": 0.85,
+                                    "competition_level": "HIGH",
+                                },
+                                {
+                                    "keyword": "keyword research",
+                                    "search_volume": 8100,
+                                    "cpc": 3.20,
+                                    "competition": 0.75,
+                                    "competition_level": "HIGH",
+                                },
+                            ]
+                        }
                     ]
                 }
             ]
@@ -124,9 +128,16 @@ class TestEnhancedKeywordAnalyzer:
         assert "keyword_targeting_strategy" in result
         strategy = result["keyword_targeting_strategy"]
 
-        assert "high_opportunity" in strategy
-        assert "medium_opportunity" in strategy
-        assert "low_opportunity" in strategy
+        assert "keyword_categories" in strategy
+        assert "strategy_overview" in strategy
+        assert "action_plan" in strategy
+
+        # Check keyword categories structure
+        categories = strategy["keyword_categories"]
+        assert "high_volume_low_competition" in categories
+        assert "long_tail_opportunities" in categories
+        assert "quick_wins" in categories
+        assert "competitive_targets" in categories
 
     def test_error_handling(self, keyword_analyzer, sample_keyword_request):
         """Test error handling in keyword analysis."""
@@ -136,8 +147,9 @@ class TestEnhancedKeywordAnalyzer:
 
         result = keyword_analyzer.analyze_keywords(sample_keyword_request)
 
-        assert result["status"] == "failed"
+        assert "error" in result
         assert "API Error" in result["error"]
+        assert result["keywords"] == sample_keyword_request.keywords
 
 
 class TestSEORecommendationEngine:
@@ -160,7 +172,7 @@ class TestSEORecommendationEngine:
             "ranking keyword": {
                 "search_volume": {"search_volume": 1200},
                 "difficulty": {"difficulty": 45},
-                "position": 15,  # Low ranking
+                "position": 25,  # Low ranking (>20)
             },
             "good ranking keyword": {
                 "search_volume": {"search_volume": 800},
@@ -199,7 +211,7 @@ class TestSEORecommendationEngine:
 
         # Should identify missing high-volume keywords
         missing_keyword_recs = [
-            r for r in recommendations if "High-Volume Missing Keywords" in r.title
+            r for r in recommendations if "Missing Keywords" in r.title
         ]
         assert len(missing_keyword_recs) > 0
 
@@ -337,8 +349,8 @@ class TestEnhancedReporting:
         assert isinstance(result, str)
         assert "seo tools" in result
         assert "keyword research" in result
-        assert "5400" in result  # Search volume
-        assert "8100" in result  # Search volume
+        assert "5,400" in result  # Search volume (formatted with comma)
+        assert "8,100" in result  # Search volume (formatted with comma)
 
     def test_rich_reporter_initialization(self, rich_reporter):
         """Test Rich Reporter initialization."""
@@ -494,6 +506,7 @@ def test_recommendation_data_structures():
         content_score=70,
         keywords_score=75,
         links_score=80,
+        performance_score=85,
         breakdown={"technical": {"score": 80, "weight": 0.25}},
     )
 

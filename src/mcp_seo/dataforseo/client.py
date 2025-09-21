@@ -146,7 +146,14 @@ class DataForSEOClient:
             "tag": kwargs.get("tag", "fastmcp-seo")
         }]
         return self._make_request("/serp/google/organic/task_post", "POST", data)
-    
+
+    def get_serp_data(self, keyword: str, location: str = "United States") -> Dict[str, Any]:
+        """Get SERP data for a keyword (alias for get_serp_results)."""
+        from ..config.settings import get_location_code, get_language_code
+        location_code = get_location_code(location)
+        language_code = get_language_code("english")
+        return self.get_serp_results(keyword, location_code, language_code)
+
     def get_serp_tasks_ready(self) -> Dict[str, Any]:
         """Get completed SERP tasks."""
         return self._make_request("/serp/google/organic/tasks_ready")

@@ -300,7 +300,7 @@ class MarkdownParser:
                 if isinstance(match, tuple):
                     if len(match) == 2:
                         # Different patterns have different group arrangements
-                        if "[[" in pattern.pattern:
+                        if "\\[\\[" in pattern.pattern:
                             # WikiLink pattern: [[target|anchor]]
                             target, anchor = match
                         else:

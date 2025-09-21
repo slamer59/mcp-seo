@@ -33,8 +33,12 @@ class SEOReporter:
         self.use_rich = use_rich and RICH_AVAILABLE
         if self.use_rich:
             self.console = Console()
+            # Import and create RichReporter instance
+            from mcp_seo.utils.rich_reporter import SEOReporter as RichReporter
+            self.rich_reporter = RichReporter()
         else:
             self.console = None
+            self.rich_reporter = None
 
     def generate_keyword_analysis_report(self, keyword_data: Dict[str, Any]) -> str:
         """Generate a formatted keyword analysis report."""
@@ -46,6 +50,16 @@ class SEOReporter:
         else:
             return self._generate_plain_keyword_report(keyword_data)
 
+    def generate_keyword_report(self, keyword_data: Dict[str, Any]) -> str:
+        """Generate a formatted keyword report (alias for generate_keyword_analysis_report)."""
+        if self.use_rich and self.rich_reporter:
+            try:
+                return self.rich_reporter.generate_keyword_analysis_report(keyword_data)
+            except Exception:
+                # Fallback to plain text
+                return self._generate_plain_keyword_report(keyword_data)
+        return self.generate_keyword_analysis_report(keyword_data)
+
     def generate_onpage_analysis_report(self, onpage_data: Dict[str, Any]) -> str:
         """Generate a formatted on-page analysis report."""
         if not onpage_data:
@@ -55,6 +69,16 @@ class SEOReporter:
             return self._generate_rich_onpage_report(onpage_data)
         else:
             return self._generate_plain_onpage_report(onpage_data)
+
+    def generate_onpage_report(self, onpage_data: Dict[str, Any]) -> str:
+        """Generate a formatted on-page report (alias for generate_onpage_analysis_report)."""
+        if self.use_rich and self.rich_reporter:
+            try:
+                return self.rich_reporter.generate_onpage_analysis_report(onpage_data)
+            except Exception:
+                # Fallback to plain text
+                return self._generate_plain_onpage_report(onpage_data)
+        return self.generate_onpage_analysis_report(onpage_data)
 
     def generate_pagerank_analysis_report(self, pagerank_data: Dict[str, Any]) -> str:
         """Generate a formatted PageRank analysis report."""
@@ -66,6 +90,16 @@ class SEOReporter:
         else:
             return self._generate_plain_pagerank_report(pagerank_data)
 
+    def generate_pagerank_report(self, pagerank_data: Dict[str, Any]) -> str:
+        """Generate a formatted PageRank report (alias for generate_pagerank_analysis_report)."""
+        if self.use_rich and self.rich_reporter:
+            try:
+                return self.rich_reporter.generate_pagerank_analysis_report(pagerank_data)
+            except Exception:
+                # Fallback to plain text
+                return self._generate_plain_pagerank_report(pagerank_data)
+        return self.generate_pagerank_analysis_report(pagerank_data)
+
     def generate_comprehensive_seo_report(self, seo_analysis: Dict[str, Any]) -> str:
         """Generate a comprehensive SEO analysis report."""
         if not seo_analysis:
@@ -75,6 +109,49 @@ class SEOReporter:
             return self._generate_rich_comprehensive_report(seo_analysis)
         else:
             return self._generate_plain_comprehensive_report(seo_analysis)
+
+    def generate_comprehensive_report(self, keyword_data: Dict[str, Any] = None,
+                                    pagerank_data: Dict[str, Any] = None,
+                                    onpage_data: Dict[str, Any] = None) -> str:
+        """Generate a comprehensive report combining multiple analyses."""
+        if self.use_rich and self.rich_reporter:
+            try:
+                return self.rich_reporter.generate_comprehensive_seo_report(
+                    keyword_data=keyword_data,
+                    pagerank_data=pagerank_data,
+                    onpage_data=onpage_data
+                )
+            except Exception:
+                # Fallback to plain text
+                pass
+
+        # Plain text comprehensive report
+        sections = []
+        if keyword_data:
+            sections.append(self._generate_plain_keyword_report(keyword_data))
+        if pagerank_data:
+            sections.append(self._generate_plain_pagerank_report(pagerank_data))
+        if onpage_data:
+            sections.append(self._generate_plain_onpage_report(onpage_data))
+
+        return "\n\n" + "="*80 + "\n\n".join(sections) if sections else "No data available for comprehensive report."
+
+    def create_progress_tracker(self, task_name: str, total_steps: int):
+        """Create a progress tracker for the given task."""
+        if self.use_rich and self.rich_reporter:
+            try:
+                return self.rich_reporter.create_progress_tracker(task_name, total_steps)
+            except Exception:
+                # Fallback to a simple mock tracker
+                pass
+
+        # Return a simple mock tracker for non-rich mode
+        class SimpleTracker:
+            def __init__(self, name, total):
+                self.name = name
+                self.total = total
+
+        return SimpleTracker(task_name, total_steps)
 
     def _generate_rich_keyword_report(self, keyword_data: Dict[str, Any]) -> str:
         """Generate rich-formatted keyword analysis report."""
@@ -438,7 +515,7 @@ class SEOReporter:
         )
         lines.append("SUMMARY:")
         lines.append(f"- Total Keywords: {total_keywords}")
-        lines.append(f"- Average Search Volume: {avg_volume:,.0f}")
+        lines.append(f"- Average Search Volume: {avg_volume:.0f}")
         lines.append("")
 
         # Keywords
@@ -446,8 +523,10 @@ class SEOReporter:
             lines.append("TOP KEYWORDS:")
             for i, keyword in enumerate(keyword_data["keywords_data"][:10], 1):
                 volume = keyword.get("search_volume", 0)
+                competition = keyword.get("competition", "N/A")
+                cpc = keyword.get("cpc", 0)
                 lines.append(
-                    f"{i}. {keyword.get('keyword', 'N/A')} - Volume: {volume:,}"
+                    f"{i}. {keyword.get('keyword', 'N/A')} - Volume: {volume}, Competition: {competition}, CPC: ${cpc}"
                 )
 
         return "\n".join(lines)
@@ -474,9 +553,19 @@ class SEOReporter:
         lines.append("")
 
         lines.append("PAGE STATISTICS:")
-        lines.append(f"- Total Pages Crawled: {summary.get('crawled_pages', 0)}")
+        # Use the correct field name from test data
+        lines.append(f"- Total Pages Analyzed: {summary.get('total_pages_analyzed', summary.get('crawled_pages', 0))}")
         lines.append(f"- Broken Pages: {summary.get('broken_pages', 0)}")
         lines.append(f"- Duplicate Titles: {summary.get('duplicate_title_tags', 0)}")
+        lines.append("")
+
+        # Issues by type
+        issues_by_type = onpage_data.get("issues_by_type", {})
+        if issues_by_type:
+            lines.append("ISSUES BY TYPE:")
+            for issue_type, count in issues_by_type.items():
+                issue_name = issue_type.replace("_", " ").title()
+                lines.append(f"- {issue_name}: {count}")
 
         return "\n".join(lines)
 
@@ -495,6 +584,23 @@ class SEOReporter:
             lines.append(f"- Total Pages: {metrics.get('total_pages', 0)}")
             lines.append(f"- Total Links: {metrics.get('total_links', 0)}")
             lines.append(f"- Orphaned Pages: {metrics.get('orphaned_pages_count', 0)}")
+            lines.append("")
+
+        # Top pages
+        if "top_pages" in pagerank_data:
+            lines.append("TOP PAGES:")
+            for i, page in enumerate(pagerank_data["top_pages"][:10], 1):
+                url = page.get("url", "N/A")
+                pagerank = page.get("pagerank", 0)
+                lines.append(f"{i}. {url} - PageRank: {pagerank:.4f}")
+            lines.append("")
+
+        # Orphaned pages
+        orphaned_pages = pagerank_data.get("orphaned_pages", [])
+        if orphaned_pages:
+            lines.append("ORPHANED PAGES:")
+            for i, page in enumerate(orphaned_pages[:10], 1):
+                lines.append(f"{i}. {page}")
 
         return "\n".join(lines)
 

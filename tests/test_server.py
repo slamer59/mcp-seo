@@ -34,18 +34,20 @@ from mcp_seo.models.seo_models import (
 
 def call_tool(tool_name: str, *args, **kwargs):
     """Helper function to call MCP tools for testing."""
-    # Import the actual function from the server module
-    import mcp_seo.server as server_module
+    # Get tool from the MCP tool manager
+    from mcp_seo.server import mcp
 
-    if hasattr(server_module, tool_name):
-        func_tool = getattr(server_module, tool_name)
-        # If it's a FunctionTool, get the actual function
-        if hasattr(func_tool, 'func'):
-            return func_tool.func(*args, **kwargs)
+    tools = mcp._tool_manager._tools
+    if tool_name in tools:
+        tool = tools[tool_name]
+        if hasattr(tool, 'fn'):
+            return tool.fn(*args, **kwargs)
+        elif hasattr(tool, 'func'):
+            return tool.func(*args, **kwargs)
         else:
-            return func_tool(*args, **kwargs)
-    else:
-        raise ValueError(f"Tool '{tool_name}' not found in server module")
+            return tool(*args, **kwargs)
+
+    raise ValueError(f"Tool '{tool_name}' not found in MCP registry")
 
 
 @pytest.fixture
@@ -1249,8 +1251,8 @@ class TestMCPToolRegistration:
         from mcp_seo.server import mcp
 
         # Get list of registered tools
-        tools = mcp._tools
-        tool_names = [tool.name for tool in tools.values()]
+        tools = mcp._tool_manager._tools
+        tool_names = list(tools.keys())
 
         # Verify core tools are registered
         expected_tools = [
@@ -1280,7 +1282,7 @@ class TestMCPToolRegistration:
         """Test that tools have correct parameter types."""
         from mcp_seo.server import mcp
 
-        tools = mcp._tools
+        tools = mcp._tool_manager._tools
 
         # Check specific tool parameter types
         onpage_start_tool = tools.get("onpage_analysis_start")
@@ -1290,8 +1292,8 @@ class TestMCPToolRegistration:
         assert keyword_analysis_tool is not None
 
         # Tools should have proper parameter annotations
-        assert hasattr(onpage_start_tool.func, "__annotations__")
-        assert hasattr(keyword_analysis_tool.func, "__annotations__")
+        assert hasattr(onpage_start_tool.fn, "__annotations__")
+        assert hasattr(keyword_analysis_tool.fn, "__annotations__")
 
 
 # Integration test to verify overall server functionality

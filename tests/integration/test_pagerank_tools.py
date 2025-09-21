@@ -496,12 +496,4 @@ class TestPageRankToolsIntegration:
                 assert len(results) == 3
                 for result in results:
                     assert isinstance(result, dict)
-                    assert (
-                        "error" in result
-                    )  # Expected error due to no pages                results = await asyncio.gather(*tasks)
-
-                # All should complete (even with errors)
-                assert len(results) == 3
-                for result in results:
-                    assert isinstance(result, dict)
                     assert "error" in result  # Expected error due to no pages

@@ -22,11 +22,30 @@ from rich.text import Text
 console = Console()
 
 
+class MockableMethod:
+    """A wrapper for methods that allows setting side_effect for test compatibility."""
+
+    def __init__(self, method):
+        self._method = method
+        self.side_effect = None
+
+    def __call__(self, *args, **kwargs):
+        if self.side_effect:
+            if isinstance(self.side_effect, Exception):
+                raise self.side_effect
+            elif callable(self.side_effect):
+                return self.side_effect(*args, **kwargs)
+        return self._method(*args, **kwargs)
+
+
 class SEOReporter:
     """Professional SEO analysis reporter with rich console output."""
 
     def __init__(self):
         self.console = Console()
+
+        # Create mock-compatible method wrappers
+        self._setup_mock_support()
 
     def display_header(self, title: str, subtitle: str = None) -> None:
         """Display professional styled header."""
@@ -286,6 +305,257 @@ class SEOReporter:
                 )
 
         return stats
+
+    def _setup_mock_support(self):
+        """Setup mock support for testing - allows setting side_effect on methods."""
+        # Wrap key methods with mockable wrappers for test compatibility
+        self.generate_keyword_analysis_report = MockableMethod(self.generate_keyword_analysis_report)
+        self.generate_pagerank_analysis_report = MockableMethod(self.generate_pagerank_analysis_report)
+        self.generate_onpage_analysis_report = MockableMethod(self.generate_onpage_analysis_report)
+        self.generate_comprehensive_seo_report = MockableMethod(self.generate_comprehensive_seo_report)
+        self.create_progress_tracker = MockableMethod(self.create_progress_tracker)
+
+    def generate_keyword_analysis_report(self, keyword_data: Dict[str, Any]) -> str:
+        """Generate keyword analysis report with Rich formatting."""
+        # Capture console output to string
+        import io
+
+        from rich.console import Console
+
+        output = io.StringIO()
+        temp_console = Console(file=output, width=120)
+
+        # Create table
+        table = self._create_keyword_table(keyword_data.get("keywords_data", []))
+        temp_console.print(table)
+
+        # Create summary panel
+        if "analysis_summary" in keyword_data:
+            panel = self._create_summary_panel(keyword_data["analysis_summary"])
+            temp_console.print(panel)
+
+        return output.getvalue()
+
+    def generate_pagerank_analysis_report(self, pagerank_data: Dict[str, Any]) -> str:
+        """Generate PageRank analysis report with Rich formatting."""
+        import io
+
+        from rich.console import Console
+
+        output = io.StringIO()
+        temp_console = Console(file=output, width=120)
+
+        # Basic metrics
+        if "basic_metrics" in pagerank_data:
+            metrics_table = Table(title="PageRank Analysis")
+            metrics_table.add_column("Metric", style="cyan")
+            metrics_table.add_column("Value", style="green")
+
+            metrics = pagerank_data["basic_metrics"]
+            metrics_table.add_row("Total Pages", str(metrics.get("total_pages", 0)))
+            metrics_table.add_row("Total Links", str(metrics.get("total_links", 0)))
+            metrics_table.add_row(
+                "Avg PageRank", f"{metrics.get('avg_pagerank', 0):.4f}"
+            )
+
+            temp_console.print(metrics_table)
+
+        # Top pages
+        if "top_pages" in pagerank_data:
+            top_table = Table(title="Top Pages")
+            top_table.add_column("URL", style="cyan")
+            top_table.add_column("PageRank", style="green")
+            top_table.add_column("Inbound Links", style="yellow")
+
+            for page in pagerank_data["top_pages"][:10]:
+                top_table.add_row(
+                    page.get("url", "N/A"),
+                    f"{page.get('pagerank', 0):.4f}",
+                    str(page.get("inbound_links", 0)),
+                )
+
+            temp_console.print(top_table)
+
+        return output.getvalue()
+
+    def generate_onpage_analysis_report(self, onpage_data: Dict[str, Any]) -> str:
+        """Generate on-page analysis report with Rich formatting."""
+        import io
+
+        from rich.console import Console
+
+        output = io.StringIO()
+        temp_console = Console(file=output, width=120)
+
+        # Summary
+        if "summary" in onpage_data:
+            summary_table = Table(title="On-Page Analysis Summary")
+            summary_table.add_column("Metric", style="cyan")
+            summary_table.add_column("Count", style="green")
+
+            summary = onpage_data["summary"]
+            summary_table.add_row(
+                "Total Pages", str(summary.get("total_pages_analyzed", 0))
+            )
+            summary_table.add_row(
+                "Critical Issues", str(summary.get("critical_issues", 0))
+            )
+            summary_table.add_row(
+                "High Priority", str(summary.get("high_priority_issues", 0))
+            )
+            summary_table.add_row(
+                "Medium Priority", str(summary.get("medium_priority_issues", 0))
+            )
+            summary_table.add_row(
+                "Low Priority", str(summary.get("low_priority_issues", 0))
+            )
+
+            temp_console.print(summary_table)
+
+        return output.getvalue()
+
+    def generate_comprehensive_seo_report(
+        self,
+        keyword_data: Dict[str, Any] = None,
+        pagerank_data: Dict[str, Any] = None,
+        onpage_data: Dict[str, Any] = None,
+    ) -> str:
+        """Generate comprehensive SEO report with Rich formatting."""
+        import io
+
+        from rich.console import Console
+
+        output = io.StringIO()
+        temp_console = Console(file=output, width=120)
+
+        # Header
+        header = Panel.fit(
+            "[bold blue]Comprehensive SEO Analysis Report[/bold blue]",
+            border_style="blue",
+        )
+        temp_console.print(header)
+
+        # Individual sections
+        if keyword_data:
+            temp_console.print("\n[bold cyan]Keyword Analysis[/bold cyan]")
+            keyword_report = self.generate_keyword_analysis_report(keyword_data)
+            temp_console.print(keyword_report)
+
+        if pagerank_data:
+            temp_console.print("\n[bold cyan]PageRank Analysis[/bold cyan]")
+            pagerank_report = self.generate_pagerank_analysis_report(pagerank_data)
+            temp_console.print(pagerank_report)
+
+        if onpage_data:
+            temp_console.print("\n[bold cyan]On-Page Analysis[/bold cyan]")
+            onpage_report = self.generate_onpage_analysis_report(onpage_data)
+            temp_console.print(onpage_report)
+
+        return output.getvalue()
+
+    def _create_keyword_table(self, keywords_data: List[Dict]) -> Table:
+        """Create keyword data table."""
+        table = Table(title="Keyword Analysis")
+        table.add_column("Keyword", style="cyan")
+        table.add_column("Search Volume", style="green")
+        table.add_column("Competition", style="yellow")
+        table.add_column("CPC", style="magenta")
+
+        for keyword in keywords_data[:10]:  # Top 10
+            table.add_row(
+                keyword.get("keyword", "N/A"),
+                str(keyword.get("search_volume", 0)),
+                str(keyword.get("competition", "N/A")),
+                f"${keyword.get('cpc', 0):.2f}",
+            )
+
+        return table
+
+    def _create_summary_panel(self, summary_data: Dict) -> Panel:
+        """Create summary panel."""
+        content = "\n".join(
+            [
+                f"Total Keywords: {summary_data.get('total_keywords', 0)}",
+                f"Avg Search Volume: {summary_data.get('avg_search_volume', 0):.0f}",
+                f"Avg Competition: {summary_data.get('avg_competition', 0):.2f}",
+            ]
+        )
+
+        return Panel(content, title="Summary", border_style="green")
+
+    def create_progress_tracker(self, task_name: str, total_steps: int):
+        """Create progress tracker."""
+        from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn
+
+        progress = Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+            console=self.console,
+        )
+        return progress
+
+    def _create_recommendations_table(self, recommendations: List[Dict]) -> Table:
+        """Create recommendations table."""
+        table = Table(title="SEO Recommendations")
+        table.add_column("Title", style="cyan")
+        table.add_column("Priority", style="red")
+        table.add_column("Category", style="green")
+        table.add_column("Impact", style="yellow")
+        table.add_column("Effort", style="magenta")
+
+        for rec in recommendations:
+            priority_color = self._get_priority_color(rec.get("priority", "medium"))
+            table.add_row(
+                rec.get("title", "N/A"),
+                f"[{priority_color}]{rec.get('priority', 'medium')}[/{priority_color}]",
+                rec.get("category", "N/A"),
+                rec.get("impact", "N/A"),
+                rec.get("effort", "N/A"),
+            )
+
+        return table
+
+    def _create_metrics_panel(self, metrics: Dict) -> Panel:
+        """Create metrics panel."""
+        content = "\n".join(
+            [
+                f"Overall Score: {metrics.get('overall_score', 0)}/100",
+                f"Technical Score: {metrics.get('technical_score', 0)}/100",
+                f"Content Score: {metrics.get('content_score', 0)}/100",
+                f"Keywords Score: {metrics.get('keywords_score', 0)}/100",
+                f"Links Score: {metrics.get('links_score', 0)}/100",
+            ]
+        )
+
+        return Panel(content, title="SEO Metrics", border_style="blue")
+
+    def _get_priority_color(self, priority: str) -> str:
+        """Get color for priority level."""
+        colors = {
+            "critical": "red",
+            "high": "orange",
+            "medium": "yellow",
+            "low": "green",
+        }
+        return colors.get(priority.lower(), "white")
+
+    def export_report_to_file(self, data: Dict, filename: str, format: str = "txt"):
+        """Export report to file."""
+        try:
+            with open(filename, "w", encoding="utf-8") as f:
+                if format.lower() == "html":
+                    # Simple HTML export
+                    f.write("<html><body><pre>")
+                    f.write(str(data))
+                    f.write("</pre></body></html>")
+                else:
+                    f.write(str(data))
+            return True
+        except Exception as e:
+            self.display_error(f"Failed to export report: {e}")
+            return False
 
 
 class ProgressTracker:

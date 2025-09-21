@@ -88,7 +88,7 @@ class SEORecommendationEngine:
                     'search_volume': search_volume,
                     'difficulty': difficulty
                 })
-            elif position > 20:
+            elif position > 10:  # Changed from 20 to 10 to catch more low rankings
                 low_rankings.append({
                     'keyword': keyword,
                     'position': position,
@@ -120,7 +120,7 @@ class SEORecommendationEngine:
         if low_rankings:
             recommendations.append(SEORecommendation(
                 title="Improve Low-Ranking Keyword Positions",
-                description=f"Optimize content for {len(low_rankings)} keywords ranking below position 20",
+                description=f"Optimize content for {len(low_rankings)} keywords ranking below position 10",
                 priority=SeverityLevel.MEDIUM,
                 category=RecommendationType.CONTENT,
                 impact="Medium - Could improve existing traffic",
@@ -408,7 +408,7 @@ class SEORecommendationEngine:
             SeverityLevel.INFO: 4
         }
 
-        return sorted(recommendations, key=lambda r: (priority_order[r.priority], r.affected_pages or 0), reverse=True)
+        return sorted(recommendations, key=lambda r: (priority_order[r.priority], -(r.affected_pages or 0)))
 
     def _generate_action_plan(self, recommendations: List[SEORecommendation]) -> Dict[str, Any]:
         """Generate a structured action plan based on recommendations."""

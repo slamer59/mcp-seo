@@ -27,17 +27,17 @@ class PageRankAnalyzer:
         self.kuzu_manager = kuzu_manager
         self.pagerank_scores: Dict[str, float] = {}
 
-    def calculate_pagerank(self, damping_factor: float = 0.85, 
-                          max_iterations: int = 100, 
+    def calculate_pagerank(self, damping_factor: float = 0.85,
+                          max_iterations: int = 100,
                           tolerance: float = 1e-6) -> Dict[str, float]:
         """
         Calculate PageRank using power iteration method.
-        
+
         Args:
             damping_factor: PageRank damping factor (typically 0.85)
             max_iterations: Maximum number of iterations
             tolerance: Convergence tolerance
-            
+
         Returns:
             Dictionary mapping URLs to PageRank scores
         """
@@ -48,12 +48,20 @@ class PageRankAnalyzer:
                 logger.error("No pages found in database")
                 return {}
 
-            pages = [page['url'] for page in pages_data]
-            n_pages = len(pages)
+            # Filter out invalid URLs (empty or None)
+            valid_pages = [page['url'] for page in pages_data
+                          if page['url'] and page['url'].strip()]
+
+            if not valid_pages:
+                logger.error("No valid pages found in database")
+                return {}
+
+            n_pages = len(valid_pages)
 
             # Initialize PageRank scores
             initial_score = 1.0 / n_pages
-            for page in pages:
+            self.pagerank_scores = {}
+            for page in valid_pages:
                 self.pagerank_scores[page] = initial_score
 
             logger.info(f"Starting PageRank calculation for {n_pages} pages")
@@ -63,7 +71,7 @@ class PageRankAnalyzer:
                 new_scores = {}
                 total_change = 0.0
 
-                for page in pages:
+                for page in valid_pages:
                     # Get incoming links
                     incoming_links = self.kuzu_manager.get_incoming_links(page)
 
@@ -72,7 +80,8 @@ class PageRankAnalyzer:
                     for link in incoming_links:
                         source_url = link['source_url']
                         out_degree = link['source_out_degree']
-                        if out_degree > 0 and source_url in self.pagerank_scores:
+                        if (out_degree > 0 and source_url in self.pagerank_scores
+                            and source_url and source_url.strip()):
                             rank_sum += self.pagerank_scores[source_url] / out_degree
 
                     new_score = (1 - damping_factor) / n_pages + damping_factor * rank_sum
@@ -88,6 +97,12 @@ class PageRankAnalyzer:
                 if total_change < tolerance:
                     logger.info(f"PageRank converged after {iteration + 1} iterations")
                     break
+
+            # Normalize scores to ensure they sum to 1.0
+            total_score = sum(self.pagerank_scores.values())
+            if total_score > 0:
+                for page in self.pagerank_scores:
+                    self.pagerank_scores[page] /= total_score
 
             # Update database with PageRank scores
             self.kuzu_manager.update_pagerank_scores(self.pagerank_scores)

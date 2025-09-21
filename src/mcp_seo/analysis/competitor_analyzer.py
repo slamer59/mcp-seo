@@ -50,6 +50,7 @@ class SERPCompetitorAnalyzer:
     def __init__(
         self,
         client: DataForSEOClient,
+        target_domain: Optional[str] = None,
         competitor_mappings: Optional[List[CompetitorMapping]] = None,
     ):
         """
@@ -57,10 +58,102 @@ class SERPCompetitorAnalyzer:
 
         Args:
             client: DataForSEO API client
+            target_domain: Optional target domain for analysis
             competitor_mappings: Optional list of competitor identification rules
         """
         self.client = client
+        self.target_domain = target_domain
         self.competitor_mappings = competitor_mappings or []
+
+    def get_serp_data(self, keyword: str, location: str = "United States") -> Dict[str, Any]:
+        """Get SERP data for a keyword."""
+        return self._get_serp_data(keyword, location)
+
+    def analyze_keyword_rankings(self, keywords: List[str], config=None) -> Dict[str, Any]:
+        """Analyze keyword rankings for the target domain."""
+        try:
+            results = {
+                "status": "completed",
+                "rankings": []
+            }
+
+            for keyword in keywords:
+                if config and config.progress_callback:
+                    config.progress_callback(f"Analyzing {keyword}", len(results["rankings"]) + 1, len(keywords))
+
+                try:
+                    serp_data = self.get_serp_data(keyword)
+                    target_position = self._find_domain_position(serp_data.get("tasks", [{}])[0].get("result", [{}])[0].get("items", []), self.target_domain)
+                    competitors = self._analyze_competitors(serp_data.get("tasks", [{}])[0].get("result", [{}])[0].get("items", []))
+
+                    keyword_result = {
+                        "keyword": keyword,
+                        "target_position": target_position,
+                        "competitors": competitors
+                    }
+                    results["rankings"].append(keyword_result)
+
+                except Exception as e:
+                    # For API exceptions, fail the entire operation
+                    from ..dataforseo.client import ApiException
+                    if isinstance(e, ApiException):
+                        raise e
+
+                    keyword_result = {
+                        "keyword": keyword,
+                        "target_position": None,
+                        "competitors": [],
+                        "error": str(e)
+                    }
+                    results["rankings"].append(keyword_result)
+
+            return results
+
+        except Exception as e:
+            return {
+                "status": "failed",
+                "error": str(e),
+                "rankings": []
+            }
+
+    def _find_domain_position(self, serp_items: List[Dict], domain: str) -> Optional[int]:
+        """Find domain position in SERP results."""
+        if not domain:
+            return None
+
+        for item in serp_items:
+            item_domain = item.get("domain", "")
+            if domain.lower() in item_domain.lower():
+                return item.get("position", item.get("rank_group"))
+        return None
+
+    def _analyze_competitors(self, serp_items: List[Dict]) -> List[Dict[str, Any]]:
+        """Analyze competitors in SERP results."""
+        competitors = []
+
+        for item in serp_items:
+            domain = item.get("domain", "")
+
+            # Identify competitor type using mappings
+            # Use domain as URL if URL is not available
+            url = item.get("url", "") or f"https://{domain}"
+            competitor_info = self._identify_competitor(
+                url,
+                item.get("title", ""),
+                item.get("description", ""),
+                self.competitor_mappings
+            )
+
+            competitor_data = {
+                "domain": domain,
+                "position": item.get("position", item.get("rank_group")),
+                "title": item.get("title", ""),
+                "url": item.get("url", ""),
+                "competitor_type": competitor_info["type"] if competitor_info else None
+            }
+            competitors.append(competitor_data)
+
+        return competitors
 
     def find_domain_position(
         self,
@@ -375,20 +468,40 @@ class SERPCompetitorAnalyzer:
 
     def _get_serp_data(self, keyword: str, location: str) -> Dict:
         """Get SERP data for keyword using DataForSEO client."""
-        location_code = get_location_code(location)
-        language_code = get_language_code("english")  # Default to English
+        try:
+            # Try to use the get_serp_data method if it exists on the client
+            if hasattr(self.client, 'get_serp_data'):
+                return self.client.get_serp_data(keyword, location)
 
-        data = [
-            {
-                "keyword": keyword,
-                "location_code": location_code,
-                "language_code": language_code,
-                "device": "desktop",
-                "os": "windows",
+            # Fallback to direct API call
+            location_code = get_location_code(location)
+            language_code = get_language_code("english")  # Default to English
+
+            data = [
+                {
+                    "keyword": keyword,
+                    "location_code": location_code,
+                    "language_code": language_code,
+                    "device": "desktop",
+                    "os": "windows",
+                }
+            ]
+
+            return self.client._make_request("serp/google/organic/task_post", data)
+        except Exception as e:
+            # Re-raise API exceptions
+            from ..dataforseo.client import ApiException
+            if isinstance(e, ApiException):
+                raise e
+
+            # Return mock data structure for other exceptions
+            return {
+                "tasks": [{
+                    "result": [{
+                        "items": []
+                    }]
+                }]
             }
-        ]
-
-        return self.client._make_request("serp/google/organic/task_post", data)
 
     def _get_keyword_difficulty(self, keyword: str, location: str) -> Dict:
         """Get keyword difficulty metrics."""

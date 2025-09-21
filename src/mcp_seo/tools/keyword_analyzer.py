@@ -44,9 +44,9 @@ class KeywordAnalyzer:
             # Wait for completion and get results
             completed_result = self.client.wait_for_task_completion(task_id, "keywords")
 
-            if not completed_result.get("tasks") or not completed_result["tasks"][
-                0
-            ].get("result"):
+            if (not completed_result.get("tasks") or
+                not completed_result["tasks"] or
+                completed_result["tasks"][0].get("result") is None):
                 return {
                     "task_id": task_id,
                     "status": "failed",
@@ -55,7 +55,14 @@ class KeywordAnalyzer:
 
             # Process keyword data
             keywords_data = []
-            task_result = completed_result["tasks"][0]["result"][0]
+            task_result = completed_result["tasks"][0]["result"]
+            if not task_result or len(task_result) == 0:
+                return {
+                    "task_id": task_id,
+                    "status": "failed",
+                    "error": "No keyword data available",
+                }
+            task_result = task_result[0]
 
             for keyword_info in task_result.get("items", []):
                 keyword_data = KeywordData(
@@ -66,7 +73,7 @@ class KeywordAnalyzer:
                     competition_level=keyword_info.get("competition_level"),
                     monthly_searches=keyword_info.get("monthly_searches", []),
                 )
-                keywords_data.append(keyword_data.dict())
+                keywords_data.append(keyword_data.model_dump())
 
             # Get keyword suggestions if requested
             suggestions = []
@@ -84,7 +91,7 @@ class KeywordAnalyzer:
                 "status": "completed",
                 "keywords_data": keywords_data,
                 "total_keywords": len(keywords_data),
-                "suggestions": suggestions,
+                "keyword_suggestions": suggestions,
                 "location": request.location,
                 "language": request.language,
                 "analysis_summary": self._create_keyword_summary(keywords_data),
@@ -94,9 +101,8 @@ class KeywordAnalyzer:
             keyword_performance_data = {}
             for kw in keywords_data:
                 keyword_performance_data[kw["keyword"]] = {
-                    "search_volume": kw.get("search_volume", 0),
-                    "competition": kw.get("competition", 0),
-                    "cpc": kw.get("cpc", 0),
+                    "search_volume": {"search_volume": kw.get("search_volume", 0)},
+                    "difficulty": {"difficulty": kw.get("competition", 0) * 100},  # Convert competition to difficulty score
                     "position": None,  # Not available in this context
                 }
 
@@ -111,7 +117,7 @@ class KeywordAnalyzer:
             )
 
             # Add formatted report
-            result["formatted_report"] = self.reporter.generate_keyword_analysis_report(
+            result["formatted_report"] = self.reporter.generate_keyword_report(
                 result
             )
 
@@ -119,6 +125,7 @@ class KeywordAnalyzer:
 
         except Exception as e:
             return {
+                "status": "failed",
                 "error": f"Failed to analyze keywords: {str(e)}",
                 "keywords": request.keywords,
             }
@@ -197,7 +204,7 @@ class KeywordAnalyzer:
             )
 
             # Add formatted report
-            result["formatted_report"] = self.reporter.generate_keyword_analysis_report(
+            result["formatted_report"] = self.reporter.generate_keyword_report(
                 result
             )
 
@@ -428,6 +435,9 @@ class KeywordAnalyzer:
                     "long_tail" if len(long_tail_opportunities) > 5 else "quick_wins"
                 ),
             },
+            "high_opportunity": high_volume_low_competition[:5],
+            "medium_opportunity": long_tail_opportunities[:5] + quick_wins[:5],
+            "low_opportunity": competitive_targets[:5],
             "keyword_categories": {
                 "high_volume_low_competition": {
                     "count": len(high_volume_low_competition),

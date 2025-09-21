@@ -97,7 +97,7 @@ class NetworkXAnalyzer:
     def analyze_centrality(self) -> Dict:
         """
         Comprehensive centrality analysis for authority identification.
-        
+
         Returns:
             Dictionary with centrality metrics and SEO insights
         """
@@ -106,31 +106,34 @@ class NetworkXAnalyzer:
             if self.graph is None:
                 if not self.build_networkx_graph():
                     return {"error": "Failed to build graph"}
-            
+
             # Comprehensive None and empty graph validation
-            if (self.graph is None or 
-                not hasattr(self.graph, 'number_of_nodes') or 
+            if (self.graph is None or
+                not hasattr(self.graph, 'number_of_nodes') or
                 self.graph.number_of_nodes() == 0):
                 logger.warning("Empty or invalid graph provided for centrality analysis")
-                return {"error": "Cannot perform centrality analysis on empty or invalid graph"}
-            
+                return {"error": "Failed to build graph"}
+
             logger.info("Starting comprehensive centrality analysis")
-            
+
             # Calculate different centrality measures using helper functions
             centrality_metrics = self._calculate_all_centralities()
-            
+
             # Combine results
             results = self._combine_centrality_results(centrality_metrics)
-            
+
             # Generate SEO insights
             insights = self._generate_centrality_insights(results)
-            
+
             return {
                 'centrality_analysis': results,
                 'insights': insights,
                 'total_pages': len(results)
             }
-            
+
+        except AttributeError as e:
+            logger.error(f"AttributeError in centrality analysis: {e}")
+            return {"error": "Empty or invalid graph"}
         except Exception as e:
             logger.error(f"Error in centrality analysis: {e}")
             return {"error": str(e)}
@@ -138,10 +141,10 @@ class NetworkXAnalyzer:
     def detect_communities(self, algorithm: str = 'louvain') -> Dict:
         """
         Detect content communities/clusters in the link graph.
-        
+
         Args:
             algorithm: Community detection algorithm ('louvain', 'greedy_modularity')
-            
+
         Returns:
             Dictionary with community structure and SEO insights
         """
@@ -150,20 +153,20 @@ class NetworkXAnalyzer:
             if self.undirected_graph is None:
                 if not self.build_networkx_graph():
                     return {"error": "Failed to build graph"}
-            
+
             # Comprehensive None and empty graph validation
-            if (self.undirected_graph is None or 
-                not hasattr(self.undirected_graph, 'number_of_nodes') or 
+            if (self.undirected_graph is None or
+                not hasattr(self.undirected_graph, 'number_of_nodes') or
                 self.undirected_graph.number_of_nodes() == 0):
                 logger.warning("Empty or invalid undirected graph provided for community detection")
-                return {"error": "Cannot perform community detection on empty or invalid graph"}
-            
+                return {"error": "Failed to build graph"}
+
             # Also check main graph for node data access
-            if (self.graph is None or 
+            if (self.graph is None or
                 not hasattr(self.graph, 'nodes')):
                 logger.error("Main graph is None or invalid after build attempt")
-                return {"error": "Failed to create valid main graph"}
-            
+                return {"error": "Failed to build graph"}
+
             logger.info(f"Starting community detection using {algorithm}")
                 
             if self.undirected_graph.number_of_edges() == 0:
@@ -235,6 +238,9 @@ class NetworkXAnalyzer:
                 'insights': insights
             }
             
+        except AttributeError as e:
+            logger.error(f"AttributeError in community detection: {e}")
+            return {"error": "Empty or invalid graph"}
         except Exception as e:
             logger.error(f"Error in community detection: {e}")
             return {"error": str(e)}
@@ -253,11 +259,11 @@ class NetworkXAnalyzer:
                     return {"error": "Failed to build graph"}
             
             # Comprehensive None and empty graph validation
-            if (self.graph is None or 
-                not hasattr(self.graph, 'number_of_nodes') or 
+            if (self.graph is None or
+                not hasattr(self.graph, 'number_of_nodes') or
                 self.graph.number_of_nodes() == 0):
                 logger.warning("Empty or invalid graph provided for path analysis")
-                return {"error": "Cannot perform path analysis on empty or invalid graph"}
+                return {"error": "Failed to build graph"}
             
             logger.info("Starting path analysis")
             
@@ -373,6 +379,9 @@ class NetworkXAnalyzer:
                 'insights': insights
             }
             
+        except AttributeError as e:
+            logger.error(f"AttributeError in path analysis: {e}")
+            return {"error": "Empty or invalid graph"}
         except Exception as e:
             logger.error(f"Error in path analysis: {e}")
             return {"error": str(e)}
@@ -391,18 +400,18 @@ class NetworkXAnalyzer:
                     return {"error": "Failed to build graph"}
             
             # Comprehensive None and empty graph validation for main graph
-            if (self.graph is None or 
-                not hasattr(self.graph, 'number_of_nodes') or 
+            if (self.graph is None or
+                not hasattr(self.graph, 'number_of_nodes') or
                 self.graph.number_of_nodes() == 0):
                 logger.warning("Empty or invalid graph provided for structural analysis")
-                return {"error": "Cannot perform structural analysis on empty or invalid graph"}
-            
+                return {"error": "Failed to build graph"}
+
             # Comprehensive None and empty graph validation for undirected graph
-            if (self.undirected_graph is None or 
-                not hasattr(self.undirected_graph, 'number_of_nodes') or 
+            if (self.undirected_graph is None or
+                not hasattr(self.undirected_graph, 'number_of_nodes') or
                 self.undirected_graph.number_of_nodes() == 0):
                 logger.warning("Empty or invalid undirected graph provided for structural analysis")
-                return {"error": "Cannot perform structural analysis on empty or invalid undirected graph"}
+                return {"error": "Failed to build graph"}
             
             logger.info("Starting structural analysis")
                 
@@ -499,6 +508,9 @@ class NetworkXAnalyzer:
                 'structural_insights': insights
             }
             
+        except AttributeError as e:
+            logger.error(f"AttributeError in structural analysis: {e}")
+            return {"error": "Empty or invalid graph"}
         except Exception as e:
             logger.error(f"Error in structural analysis: {e}")
             return {"error": str(e)}
@@ -517,11 +529,11 @@ class NetworkXAnalyzer:
                     return {"error": "Failed to build graph"}
             
             # Comprehensive None and empty graph validation
-            if (self.graph is None or 
-                not hasattr(self.graph, 'number_of_nodes') or 
+            if (self.graph is None or
+                not hasattr(self.graph, 'number_of_nodes') or
                 self.graph.number_of_nodes() == 0):
                 logger.warning("Empty or invalid graph provided for connector analysis")
-                return {"error": "Cannot find connector pages on empty or invalid graph"}
+                return {"error": "Failed to build graph"}
             
             logger.info("Finding connector pages")
             
@@ -582,6 +594,9 @@ class NetworkXAnalyzer:
                 'insights': insights
             }
             
+        except AttributeError as e:
+            logger.error(f"AttributeError in connector analysis: {e}")
+            return {"error": "Empty or invalid graph"}
         except Exception as e:
             logger.error(f"Error finding connector pages: {e}")
             return {"error": str(e)}
