@@ -83,3 +83,46 @@ class TestJSONParameterValidation:
         existing_model = OnPageAnalysisParams(target="localhost:3000", max_crawl_pages=50)
         validated = OnPageAnalysisParams.model_validate(existing_model)
         assert validated.target == "localhost:3000"
+
+    def test_mcp_tools_json_string_handling(self):
+        """Test that MCP tools handle JSON strings correctly (regression test)."""
+        from mcp_seo.server import KeywordAnalysisParams, DomainAnalysisParams
+
+        # Test KeywordAnalysisParams with JSON string (note: keywords is plural list)
+        keyword_json_string = '{"keywords": ["gitlab mobile client"], "location": "usa", "language": "english"}'
+
+        # Simulate what MCP tools do: check if string, parse JSON, then validate
+        params = keyword_json_string
+        if isinstance(params, str):
+            params = json.loads(params)
+        validated = KeywordAnalysisParams.model_validate(params)
+
+        assert validated.keywords == ["gitlab mobile client"]
+        assert validated.location == "usa"
+        assert validated.language == "english"
+
+        # Test DomainAnalysisParams with JSON string
+        domain_json_string = '{"target": "gitalchemy.app"}'
+
+        params = domain_json_string
+        if isinstance(params, str):
+            params = json.loads(params)
+        validated = DomainAnalysisParams.model_validate(params)
+
+        assert validated.target == "gitalchemy.app"
+
+    def test_common_parameter_mistakes(self):
+        """Test common parameter format mistakes that users might make."""
+        from mcp_seo.server import KeywordAnalysisParams
+
+        # Common mistake: using "keyword" (singular) instead of "keywords" (plural)
+        with pytest.raises(Exception):  # Should fail validation
+            json_string = '{"keyword": "test", "location": "usa"}'
+            params = json.loads(json_string)
+            KeywordAnalysisParams.model_validate(params)
+
+        # Correct format: "keywords" as list
+        json_string = '{"keywords": ["test"], "location": "usa"}'
+        params = json.loads(json_string)
+        validated = KeywordAnalysisParams.model_validate(params)
+        assert validated.keywords == ["test"]
