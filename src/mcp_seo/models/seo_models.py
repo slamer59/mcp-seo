@@ -3,9 +3,10 @@ Pydantic models for SEO analysis data structures.
 """
 
 from typing import List, Dict, Any, Optional, Union
-from pydantic import BaseModel, Field, HttpUrl, field_validator
+from pydantic import BaseModel, Field, HttpUrl, field_validator, ValidationInfo
 from datetime import datetime
 from enum import Enum
+import re
 
 
 class AnalysisStatus(str, Enum):
@@ -35,19 +36,86 @@ class SEOTask(BaseModel):
 
 class OnPageAnalysisRequest(BaseModel):
     """OnPage analysis request model."""
-    target: HttpUrl
+    target: str
     max_crawl_pages: int = Field(default=100, ge=1, le=10000)
-    start_url: Optional[HttpUrl] = None
+    start_url: Optional[str] = None
     respect_sitemap: bool = True
-    custom_sitemap: Optional[HttpUrl] = None
+    custom_sitemap: Optional[str] = None
     crawl_delay: int = Field(default=1, ge=0, le=60)
     user_agent: Optional[str] = None
     enable_javascript: bool = False
-    
+
+    @field_validator('target', mode='before')
+    @classmethod
+    def validate_target_url(cls, v):
+        """Validate and normalize target URL, handling localhost cases."""
+        if not v:
+            raise ValueError("Target URL is required")
+
+        # Convert to string if it's not already
+        url = str(v)
+
+        # Handle localhost without scheme
+        if re.match(r'^localhost(:\d+)?(/.*)?$', url):
+            url = f'http://{url}'
+        elif re.match(r'^\d+\.\d+\.\d+\.\d+(:\d+)?(/.*)?$', url):  # IP address
+            url = f'http://{url}'
+        elif not url.startswith(('http://', 'https://')):
+            # Default to https for domain names
+            url = f'https://{url}'
+
+        # Basic URL validation
+        if not re.match(r'^https?://[^\s/$.?#].[^\s]*$', url):
+            raise ValueError(f"Invalid URL format: {url}")
+
+        return url
+
     @field_validator('start_url', mode='before')
     @classmethod
-    def set_start_url(cls, v, info):
-        return v or info.data.get('target')
+    def validate_start_url(cls, v, info: ValidationInfo):
+        """Validate start_url or use target if not provided."""
+        if not v and info.data:
+            return info.data.get('target')
+
+        if v:
+            url = str(v)
+            # Handle localhost without scheme
+            if re.match(r'^localhost(:\d+)?(/.*)?$', url):
+                url = f'http://{url}'
+            elif re.match(r'^\d+\.\d+\.\d+\.\d+(:\d+)?(/.*)?$', url):  # IP address
+                url = f'http://{url}'
+            elif not url.startswith(('http://', 'https://')):
+                url = f'https://{url}'
+
+            # Basic URL validation
+            if not re.match(r'^https?://[^\s/$.?#].[^\s]*$', url):
+                raise ValueError(f"Invalid start_url format: {url}")
+
+            return url
+
+        return v
+
+    @field_validator('custom_sitemap', mode='before')
+    @classmethod
+    def validate_custom_sitemap(cls, v):
+        """Validate custom sitemap URL."""
+        if not v:
+            return v
+
+        url = str(v)
+        # Handle localhost without scheme
+        if re.match(r'^localhost(:\d+)?(/.*)?$', url):
+            url = f'http://{url}'
+        elif re.match(r'^\d+\.\d+\.\d+\.\d+(:\d+)?(/.*)?$', url):  # IP address
+            url = f'http://{url}'
+        elif not url.startswith(('http://', 'https://')):
+            url = f'https://{url}'
+
+        # Basic URL validation
+        if not re.match(r'^https?://[^\s/$.?#].[^\s]*$', url):
+            raise ValueError(f"Invalid custom_sitemap format: {url}")
+
+        return url
 
 
 class OnPageIssue(BaseModel):
