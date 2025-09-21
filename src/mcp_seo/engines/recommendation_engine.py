@@ -78,7 +78,7 @@ class SEORecommendationEngine:
         low_rankings = []
 
         for keyword, data in keyword_data.items():
-            position = data.get('gitalchemy_position')
+            position = data.get('position')
             search_volume = data.get('search_volume', {}).get('search_volume', 0)
             difficulty = data.get('difficulty', {}).get('difficulty', 0)
 
@@ -353,7 +353,7 @@ class SEORecommendationEngine:
         keywords_score = 70  # Default
         if keyword_data:
             total_keywords = len(keyword_data)
-            ranking_keywords = len([k for k, v in keyword_data.items() if v.get('gitalchemy_position')])
+            ranking_keywords = len([k for k, v in keyword_data.items() if v.get('position')])
             if total_keywords > 0:
                 ranking_ratio = ranking_keywords / total_keywords
                 keywords_score = int(ranking_ratio * 100)

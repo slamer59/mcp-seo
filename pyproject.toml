@@ -37,12 +37,13 @@ test = [
 
 dev = [
     "pytest>=7.0.0",
-    "pytest-asyncio>=0.21.0", 
+    "pytest-asyncio>=0.21.0",
     "pytest-cov>=4.0.0",
     "pytest-mock>=3.10.0",
     "black>=23.0.0",
     "isort>=5.12.0",
-    "mypy>=1.0.0"
+    "mypy>=1.0.0",
+    "import-linter>=2.0.0"
 ]
 
 [project.scripts]
@@ -54,3 +55,81 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/mcp_seo"]
+
+# Import linter configuration to enforce clean architecture
+[tool.importlinter]
+root_package = "mcp_seo"
+
+# Contract 1: Enforce layered architecture
+[[tool.importlinter.contracts]]
+name = "Layered Architecture"
+type = "layers"
+layers = [
+    "(mcp_seo.server)",         # Interface Layer - MCP server endpoints (optional)
+    "mcp_seo.tools",            # Application Layer - Enhanced analyzers and tools
+    "mcp_seo.engines",          # Application Layer - Recommendation and processing engines
+    "mcp_seo.analysis",         # Application Layer - Analysis components
+    "mcp_seo.content",          # Domain Layer - Content analysis business logic
+    "mcp_seo.content_analysis", # Domain Layer - Content analysis utilities
+    "mcp_seo.models",           # Domain Layer - Data models and contracts
+    "mcp_seo.reporting",        # Infrastructure Layer - Output formatting
+    "mcp_seo.dataforseo",       # Infrastructure Layer - External API clients
+    "mcp_seo.config",           # Infrastructure Layer - Configuration management
+    "(mcp_seo.utils)",          # Infrastructure Layer - Utilities (optional)
+    "(mcp_seo.graph)"           # Infrastructure Layer - Graph operations (optional)
+]
+
+# Contract 2: Domain layer independence - Content analysis should not depend on infrastructure
+[[tool.importlinter.contracts]]
+name = "Domain Layer Independence"
+type = "forbidden"
+source_modules = [
+    "mcp_seo.content",
+    "mcp_seo.content_analysis",
+    "mcp_seo.models"
+]
+forbidden_modules = [
+    "mcp_seo.dataforseo",
+    "mcp_seo.reporting",
+    "mcp_seo.config",
+    "mcp_seo.utils"
+]
+
+# Contract 3: Infrastructure layer cannot import from application layer
+[[tool.importlinter.contracts]]
+name = "Infrastructure Isolation"
+type = "forbidden"
+source_modules = [
+    "mcp_seo.dataforseo",
+    "mcp_seo.reporting",
+    "mcp_seo.config",
+    "mcp_seo.utils"
+]
+forbidden_modules = [
+    "mcp_seo.tools",
+    "mcp_seo.engines",
+    "mcp_seo.analysis"
+]
+
+# Contract 4: Application services independence - Engines should be independent of tools
+[[tool.importlinter.contracts]]
+name = "Application Services Independence"
+type = "independence"
+modules = [
+    "mcp_seo.engines",
+    "mcp_seo.analysis",
+    "mcp_seo.content"
+]
+
+# Contract 5: Interface layer dependency rules - Server should only depend on application layer
+# Note: Currently disabled as server module structure is being refactored
+# [[tool.importlinter.contracts]]
+# name = "Interface Layer Dependencies"
+# type = "forbidden"
+# source_modules = [
+#     "mcp_seo.server"
+# ]
+# forbidden_modules = [
+#     "mcp_seo.dataforseo.client",
+#     "mcp_seo.reporting.seo_reporter"
+# ]

@@ -8,7 +8,7 @@ internal link structure optimization, and content strategy recommendations.
 import asyncio
 import json
 import logging
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from fastmcp import FastMCP
 from pydantic import BaseModel, Field, HttpUrl
@@ -76,7 +76,8 @@ class PillarPagesRequest(BaseModel):
         default=10, ge=1, le=50, description="Maximum number of pillar pages to return"
     )
     include_content_recommendations: bool = Field(
-        default=True, description="Include content optimization recommendations for pillar pages"
+        default=True,
+        description="Include content optimization recommendations for pillar pages",
     )
 
 
@@ -85,7 +86,8 @@ class OrphanedPagesRequest(BaseModel):
 
     domain: HttpUrl = Field(description="Domain to analyze")
     include_content_audit: bool = Field(
-        default=True, description="Include content audit recommendations for orphaned pages"
+        default=True,
+        description="Include content audit recommendations for orphaned pages",
     )
 
 
@@ -175,11 +177,17 @@ def register_enhanced_pagerank_tools(mcp: FastMCP):
                 }
 
                 # Add enhanced SEO recommendations using the new engine
-                link_recommendations = recommendation_engine.analyze_link_opportunities(analysis)
-                analysis["seo_recommendations"] = [rec.__dict__ for rec in link_recommendations]
+                link_recommendations = recommendation_engine.analyze_link_opportunities(
+                    analysis
+                )
+                analysis["seo_recommendations"] = [
+                    rec.__dict__ for rec in link_recommendations
+                ]
 
                 # Add formatted report using the new reporter
-                analysis["formatted_report"] = reporter.generate_pagerank_analysis_report(analysis)
+                analysis["formatted_report"] = (
+                    reporter.generate_pagerank_analysis_report(analysis)
+                )
 
                 # Add content optimization suggestions for high-authority pages
                 if include_content_analysis and "pillar_pages" in analysis:
@@ -196,21 +204,23 @@ def register_enhanced_pagerank_tools(mcp: FastMCP):
                                 "Optimize for featured snippets with structured content",
                                 "Create topic clusters around this pillar page",
                                 "Ensure mobile-friendly content formatting",
-                                "Add multimedia elements to enhance user engagement"
+                                "Add multimedia elements to enhance user engagement",
                             ],
                             "content_strategy": {
                                 "keyword_targeting": "Focus on broad, high-volume keywords",
                                 "content_depth": "Create comprehensive, authoritative content",
                                 "internal_linking": "Hub for related topic clusters",
-                                "update_frequency": "Regular updates to maintain freshness"
-                            }
+                                "update_frequency": "Regular updates to maintain freshness",
+                            },
                         }
                         content_suggestions.append(suggestions)
                     analysis["content_optimization_suggestions"] = content_suggestions
 
                 # Add content performance metrics
                 if include_content_analysis:
-                    analysis["content_performance_insights"] = _generate_content_performance_insights(analysis)
+                    analysis["content_performance_insights"] = (
+                        _generate_content_performance_insights(analysis)
+                    )
 
                 logger.info(f"Enhanced PageRank analysis completed for {domain_str}")
                 return analysis
@@ -242,7 +252,7 @@ def register_enhanced_pagerank_tools(mcp: FastMCP):
                 max_pages=max_pages,
                 use_sitemap=use_sitemap,
                 urls=urls,
-                include_content_strategy=include_content_strategy
+                include_content_strategy=include_content_strategy,
             )
 
             domain_str = str(request.domain)
@@ -286,14 +296,16 @@ def register_enhanced_pagerank_tools(mcp: FastMCP):
                 basic_metrics = {
                     "total_pages": len(pages_data),
                     "total_links": len(links_data),
-                    "average_in_degree": sum(p["in_degree"] for p in pages_data)
-                    / len(pages_data)
-                    if pages_data
-                    else 0,
-                    "average_out_degree": sum(p["out_degree"] for p in pages_data)
-                    / len(pages_data)
-                    if pages_data
-                    else 0,
+                    "average_in_degree": (
+                        sum(p["in_degree"] for p in pages_data) / len(pages_data)
+                        if pages_data
+                        else 0
+                    ),
+                    "average_out_degree": (
+                        sum(p["out_degree"] for p in pages_data) / len(pages_data)
+                        if pages_data
+                        else 0
+                    ),
                     "orphaned_pages_count": len(
                         [p for p in pages_data if p["in_degree"] == 0]
                     ),
@@ -315,11 +327,19 @@ def register_enhanced_pagerank_tools(mcp: FastMCP):
                 if include_content_strategy:
                     # Add link structure analysis and recommendations
                     link_structure_data = {
-                        "orphaned_pages": [p for p in pages_data if p["in_degree"] == 0],
-                        "basic_metrics": basic_metrics
+                        "orphaned_pages": [
+                            p for p in pages_data if p["in_degree"] == 0
+                        ],
+                        "basic_metrics": basic_metrics,
                     }
-                    link_recommendations = recommendation_engine.analyze_link_opportunities(link_structure_data)
-                    result["link_structure_recommendations"] = [rec.__dict__ for rec in link_recommendations]
+                    link_recommendations = (
+                        recommendation_engine.analyze_link_opportunities(
+                            link_structure_data
+                        )
+                    )
+                    result["link_structure_recommendations"] = [
+                        rec.__dict__ for rec in link_recommendations
+                    ]
 
                     # Add content strategy recommendations for hub pages
                     hub_pages = [p for p in pages_data if p["out_degree"] > 10][:5]
@@ -333,26 +353,26 @@ def register_enhanced_pagerank_tools(mcp: FastMCP):
                                     "Optimize hub page content for broad, high-value keywords",
                                     "Create clear navigation paths from hub pages to topic clusters",
                                     "Implement strategic anchor text for outgoing links",
-                                    "Monitor hub page performance and user engagement"
+                                    "Monitor hub page performance and user engagement",
                                 ],
                                 "top_hub_pages": hub_pages,
                                 "optimization_framework": {
                                     "content_development": [
                                         "Create comprehensive, authoritative content on hub pages",
                                         "Develop supporting content that naturally links to hub pages",
-                                        "Establish clear topic hierarchies and content clusters"
+                                        "Establish clear topic hierarchies and content clusters",
                                     ],
                                     "link_strategy": [
                                         "Use descriptive, keyword-rich anchor text",
                                         "Balance outgoing links to avoid over-optimization",
-                                        "Create natural linking patterns that serve users"
+                                        "Create natural linking patterns that serve users",
                                     ],
                                     "performance_monitoring": [
                                         "Track hub page rankings and traffic",
                                         "Monitor click-through rates on outgoing links",
-                                        "Analyze user engagement and time on page"
-                                    ]
-                                }
+                                        "Analyze user engagement and time on page",
+                                    ],
+                                },
                             }
                         }
                         result["content_strategy"] = content_strategy
@@ -368,7 +388,7 @@ def register_enhanced_pagerank_tools(mcp: FastMCP):
         domain: str,
         percentile: float = 90.0,
         limit: int = 10,
-        include_content_recommendations: bool = True
+        include_content_recommendations: bool = True,
     ) -> Dict:
         """
         Identify pillar pages with high PageRank authority and comprehensive content strategy.
@@ -382,7 +402,7 @@ def register_enhanced_pagerank_tools(mcp: FastMCP):
                 domain=domain,
                 percentile=percentile,
                 limit=limit,
-                include_content_recommendations=include_content_recommendations
+                include_content_recommendations=include_content_recommendations,
             )
 
             domain_str = str(request.domain)
@@ -425,7 +445,7 @@ def register_enhanced_pagerank_tools(mcp: FastMCP):
                         "Include multimedia content (images, videos, infographics)",
                         "Update content regularly to maintain freshness",
                         "Develop in-depth guides and tutorials",
-                        "Add user-generated content where appropriate"
+                        "Add user-generated content where appropriate",
                     ],
                     "keyword_strategy": [
                         "Target high-volume, broad keywords on pillar pages",
@@ -433,7 +453,7 @@ def register_enhanced_pagerank_tools(mcp: FastMCP):
                         "Optimize for featured snippets with structured content",
                         "Use semantic keyword variations throughout content",
                         "Implement topic modeling for comprehensive coverage",
-                        "Monitor keyword rankings and adjust strategy"
+                        "Monitor keyword rankings and adjust strategy",
                     ],
                     "internal_linking": [
                         "Link from pillar pages to related cluster content",
@@ -441,7 +461,7 @@ def register_enhanced_pagerank_tools(mcp: FastMCP):
                         "Use descriptive, keyword-rich anchor text",
                         "Create clear topic hierarchies with internal links",
                         "Implement strategic link placement for maximum impact",
-                        "Balance link equity distribution across content clusters"
+                        "Balance link equity distribution across content clusters",
                     ],
                     "user_experience": [
                         "Optimize page load speeds for pillar pages",
@@ -449,8 +469,8 @@ def register_enhanced_pagerank_tools(mcp: FastMCP):
                         "Implement clear navigation and site structure",
                         "Add interactive elements to increase engagement",
                         "Optimize for Core Web Vitals",
-                        "Create accessible content for all users"
-                    ]
+                        "Create accessible content for all users",
+                    ],
                 }
 
                 result = {
@@ -473,23 +493,23 @@ def register_enhanced_pagerank_tools(mcp: FastMCP):
                             "Optimize title tags and meta descriptions",
                             "Add internal links to pillar pages from relevant content",
                             "Ensure proper heading structure (H1, H2, H3)",
-                            "Optimize images with descriptive alt text"
+                            "Optimize images with descriptive alt text",
                         ],
                         "content_development": [
                             "Expand thin pillar page content",
                             "Create supporting cluster content",
                             "Develop content calendars around pillar topics",
                             "Add multimedia elements to enhance engagement",
-                            "Create downloadable resources and tools"
+                            "Create downloadable resources and tools",
                         ],
                         "performance_monitoring": [
                             "Track pillar page rankings for target keywords",
                             "Monitor internal link click-through rates",
                             "Analyze user engagement metrics on pillar pages",
                             "Measure conversion rates and goal completions",
-                            "Track social media shares and backlink acquisition"
-                        ]
-                    }
+                            "Track social media shares and backlink acquisition",
+                        ],
+                    },
                 }
 
                 # Add individual pillar page optimization recommendations
@@ -507,14 +527,14 @@ def register_enhanced_pagerank_tools(mcp: FastMCP):
                                 "Create comprehensive content outline",
                                 "Optimize for search intent and user journey",
                                 "Implement structured data markup",
-                                "Plan content update schedule"
+                                "Plan content update schedule",
                             ],
                             "content_enhancement": {
                                 "depth_improvement": "Add comprehensive sections covering all aspects of the topic",
                                 "multimedia_integration": "Include relevant images, videos, and interactive elements",
                                 "user_engagement": "Add calls-to-action and conversion elements",
-                                "freshness_strategy": "Plan regular updates and content refreshes"
-                            }
+                                "freshness_strategy": "Plan regular updates and content refreshes",
+                            },
                         }
                         detailed_recommendations.append(page_recommendations)
 
@@ -527,7 +547,9 @@ def register_enhanced_pagerank_tools(mcp: FastMCP):
             return {"error": str(e)}
 
     @mcp.tool()
-    async def find_orphaned_pages_with_content_audit(domain: str, include_content_audit: bool = True) -> Dict:
+    async def find_orphaned_pages_with_content_audit(
+        domain: str, include_content_audit: bool = True
+    ) -> Dict:
         """
         Find orphaned pages with no incoming internal links and comprehensive content audit.
 
@@ -536,7 +558,9 @@ def register_enhanced_pagerank_tools(mcp: FastMCP):
         """
         try:
             # Create OrphanedPagesRequest from individual parameters for validation
-            request = OrphanedPagesRequest(domain=domain, include_content_audit=include_content_audit)
+            request = OrphanedPagesRequest(
+                domain=domain, include_content_audit=include_content_audit
+            )
 
             domain_str = str(request.domain)
             logger.info(f"Finding orphaned pages with content audit for {domain_str}")
@@ -559,11 +583,17 @@ def register_enhanced_pagerank_tools(mcp: FastMCP):
                 # Enhanced orphaned page analysis with content recommendations
                 orphaned_analysis = {
                     "impact_assessment": {
-                        "seo_impact": "High" if len(orphaned_pages) > len(pages_data) * 0.1 else "Medium",
+                        "seo_impact": (
+                            "High"
+                            if len(orphaned_pages) > len(pages_data) * 0.1
+                            else "Medium"
+                        ),
                         "content_discovery_issues": len(orphaned_pages),
-                        "potential_traffic_loss": "Significant" if len(orphaned_pages) > 20 else "Moderate",
+                        "potential_traffic_loss": (
+                            "Significant" if len(orphaned_pages) > 20 else "Moderate"
+                        ),
                         "indexing_challenges": "Pages may not be properly indexed by search engines",
-                        "user_experience_impact": "Users cannot discover content through site navigation"
+                        "user_experience_impact": "Users cannot discover content through site navigation",
                     },
                     "content_optimization_strategy": {
                         "content_audit": [
@@ -572,7 +602,7 @@ def register_enhanced_pagerank_tools(mcp: FastMCP):
                             "Consider consolidating thin orphaned pages",
                             "Update outdated content before re-linking",
                             "Assess content uniqueness and value proposition",
-                            "Evaluate content alignment with business objectives"
+                            "Evaluate content alignment with business objectives",
                         ],
                         "linking_strategy": [
                             "Identify thematically related pages for contextual linking",
@@ -580,7 +610,7 @@ def register_enhanced_pagerank_tools(mcp: FastMCP):
                             "Use descriptive anchor text for new internal links",
                             "Prioritize linking from high-authority pages",
                             "Implement breadcrumb navigation where appropriate",
-                            "Add orphaned pages to relevant category listings"
+                            "Add orphaned pages to relevant category listings",
                         ],
                         "content_integration": [
                             "Include orphaned pages in content calendars",
@@ -588,8 +618,8 @@ def register_enhanced_pagerank_tools(mcp: FastMCP):
                             "Develop content series that naturally link to orphaned pages",
                             "Add orphaned pages to relevant category and tag pages",
                             "Create cross-promotional opportunities within existing content",
-                            "Implement related content recommendations"
-                        ]
+                            "Implement related content recommendations",
+                        ],
                     },
                     "technical_optimization": [
                         "Ensure orphaned pages are included in XML sitemaps",
@@ -597,24 +627,26 @@ def register_enhanced_pagerank_tools(mcp: FastMCP):
                         "Implement structured data where appropriate",
                         "Optimize page load speeds for orphaned content",
                         "Ensure mobile-friendly design",
-                        "Add proper meta tags and descriptions"
-                    ]
+                        "Add proper meta tags and descriptions",
+                    ],
                 }
 
                 result = {
                     "domain": domain_str,
                     "orphaned_pages": orphaned_pages,
                     "total_orphaned": len(orphaned_pages),
-                    "percentage_orphaned": (len(orphaned_pages) / len(pages_data)) * 100
-                    if pages_data
-                    else 0,
+                    "percentage_orphaned": (
+                        (len(orphaned_pages) / len(pages_data)) * 100
+                        if pages_data
+                        else 0
+                    ),
                     "recommendations": [
                         "Add internal links to orphaned pages from relevant content",
                         "Include orphaned pages in navigation menus or sitemaps",
                         "Create topic clusters that link to orphaned pages",
                         "Review orphaned pages for content quality and relevance",
                     ],
-                    "enhanced_analysis": orphaned_analysis
+                    "enhanced_analysis": orphaned_analysis,
                 }
 
                 if orphaned_pages:
@@ -638,7 +670,7 @@ def register_enhanced_pagerank_tools(mcp: FastMCP):
                         prioritization = {
                             "high_priority": [],
                             "medium_priority": [],
-                            "low_priority": []
+                            "low_priority": [],
                         }
 
                         for page in orphaned_pages:
@@ -646,10 +678,25 @@ def register_enhanced_pagerank_tools(mcp: FastMCP):
                             path = page.get("path", "")
 
                             # High priority: Main content pages
-                            if any(indicator in path for indicator in ['/blog/', '/article/', '/guide/', '/tutorial/']):
+                            if any(
+                                indicator in path
+                                for indicator in [
+                                    "/blog/",
+                                    "/article/",
+                                    "/guide/",
+                                    "/tutorial/",
+                                ]
+                            ):
                                 prioritization["high_priority"].append(page)
                             # Medium priority: Product or service pages
-                            elif any(indicator in path for indicator in ['/product/', '/service/', '/solution/']):
+                            elif any(
+                                indicator in path
+                                for indicator in [
+                                    "/product/",
+                                    "/service/",
+                                    "/solution/",
+                                ]
+                            ):
                                 prioritization["medium_priority"].append(page)
                             # Low priority: Other pages
                             else:
@@ -662,7 +709,7 @@ def register_enhanced_pagerank_tools(mcp: FastMCP):
                             "week_1": "Audit and prioritize high-value orphaned content",
                             "week_2_4": "Create internal links from relevant existing content",
                             "month_2_3": "Develop content clusters and hub pages for orphaned content",
-                            "ongoing": "Monitor orphaned page discovery and implement systematic linking strategy"
+                            "ongoing": "Monitor orphaned page discovery and implement systematic linking strategy",
                         }
 
                 return result
@@ -733,8 +780,8 @@ def register_enhanced_pagerank_tools(mcp: FastMCP):
                                 "audit_orphaned_content": "Review content quality before linking",
                                 "create_hub_pages": "Develop topic hubs that can link to orphaned content",
                                 "contextual_linking": "Add links from thematically related pages",
-                                "navigation_integration": "Include valuable orphaned pages in site navigation"
-                            }
+                                "navigation_integration": "Include valuable orphaned pages in site navigation",
+                            },
                         }
                     ],
                     "priority_2_actions": [
@@ -749,8 +796,8 @@ def register_enhanced_pagerank_tools(mcp: FastMCP):
                                 "content_expansion": "Add related resources and references",
                                 "topic_clustering": "Link to related content within topic clusters",
                                 "user_value": "Ensure all added links provide user value",
-                                "anchor_optimization": "Use descriptive, keyword-rich anchor text"
-                            }
+                                "anchor_optimization": "Use descriptive, keyword-rich anchor text",
+                            },
                         }
                     ],
                     "priority_3_actions": [
@@ -765,8 +812,8 @@ def register_enhanced_pagerank_tools(mcp: FastMCP):
                                 "strategic_linking": "Link from authority pages to target content",
                                 "content_optimization": "Ensure linked-to pages are optimized",
                                 "monitoring": "Track ranking improvements from authority links",
-                                "topic_relevance": "Maintain topical relevance in linking strategy"
-                            }
+                                "topic_relevance": "Maintain topical relevance in linking strategy",
+                            },
                         }
                     ],
                     "content_optimization_framework": {
@@ -776,7 +823,7 @@ def register_enhanced_pagerank_tools(mcp: FastMCP):
                             "Establish clear topic hierarchies",
                             "Use consistent internal linking patterns",
                             "Implement semantic keyword strategies",
-                            "Create content calendars around topic clusters"
+                            "Create content calendars around topic clusters",
                         ],
                         "content_quality_enhancement": [
                             "Audit and improve thin content pages",
@@ -784,7 +831,7 @@ def register_enhanced_pagerank_tools(mcp: FastMCP):
                             "Optimize for featured snippets",
                             "Ensure mobile-friendly content formatting",
                             "Implement structured data markup",
-                            "Create comprehensive resource pages"
+                            "Create comprehensive resource pages",
                         ],
                         "technical_optimization": [
                             "Optimize page load speeds",
@@ -792,7 +839,7 @@ def register_enhanced_pagerank_tools(mcp: FastMCP):
                             "Ensure proper URL structure",
                             "Monitor crawl budget allocation",
                             "Optimize images and media files",
-                            "Implement proper redirect strategies"
+                            "Implement proper redirect strategies",
                         ],
                         "user_experience_focus": [
                             "Create intuitive navigation pathways",
@@ -800,9 +847,9 @@ def register_enhanced_pagerank_tools(mcp: FastMCP):
                             "Add related content recommendations",
                             "Optimize for mobile user experience",
                             "Include clear calls-to-action",
-                            "Monitor user engagement metrics"
-                        ]
-                    }
+                            "Monitor user engagement metrics",
+                        ],
+                    },
                 }
 
                 result = {
@@ -820,7 +867,7 @@ def register_enhanced_pagerank_tools(mcp: FastMCP):
                             "Assess internal linking structure",
                             "Evaluate user engagement metrics",
                             "Analyze content performance data",
-                            "Check for content gaps and opportunities"
+                            "Check for content gaps and opportunities",
                         ],
                         "seo_content_calendar": [
                             "Plan content updates around link building opportunities",
@@ -828,7 +875,7 @@ def register_enhanced_pagerank_tools(mcp: FastMCP):
                             "Coordinate new content creation with link strategy",
                             "Monitor and adjust based on performance metrics",
                             "Align content creation with seasonal trends",
-                            "Plan content promotion and distribution strategies"
+                            "Plan content promotion and distribution strategies",
                         ],
                         "measurement_framework": [
                             "Track internal link click-through rates",
@@ -836,9 +883,9 @@ def register_enhanced_pagerank_tools(mcp: FastMCP):
                             "Measure organic traffic changes",
                             "Analyze user engagement improvements",
                             "Track keyword ranking improvements",
-                            "Monitor conversion rate impacts"
-                        ]
-                    }
+                            "Monitor conversion rate impacts",
+                        ],
+                    },
                 }
 
                 return result
@@ -854,7 +901,7 @@ def _generate_content_performance_insights(analysis: Dict[str, Any]) -> Dict[str
         "authority_distribution": {},
         "content_gaps": [],
         "optimization_opportunities": [],
-        "strategic_recommendations": []
+        "strategic_recommendations": [],
     }
 
     # Analyze authority distribution
@@ -868,22 +915,26 @@ def _generate_content_performance_insights(analysis: Dict[str, Any]) -> Dict[str
             "total_pages": total_pages,
             "orphaned_ratio": (orphaned_count / total_pages) if total_pages > 0 else 0,
             "hub_ratio": (hub_count / total_pages) if total_pages > 0 else 0,
-            "average_connectivity": metrics.get("average_in_degree", 0)
+            "average_connectivity": metrics.get("average_in_degree", 0),
         }
 
         # Identify content gaps
         if orphaned_count > total_pages * 0.1:
-            insights["content_gaps"].append("High number of orphaned pages indicates poor content integration")
+            insights["content_gaps"].append(
+                "High number of orphaned pages indicates poor content integration"
+            )
 
         if hub_count < total_pages * 0.05:
-            insights["content_gaps"].append("Limited hub pages - opportunity to create authoritative content")
+            insights["content_gaps"].append(
+                "Limited hub pages - opportunity to create authoritative content"
+            )
 
         # Generate optimization opportunities
         insights["optimization_opportunities"] = [
             "Develop content clusters around high-authority pages",
             "Create topic hubs to connect related content",
             "Optimize internal linking for better content discovery",
-            "Implement strategic content planning based on PageRank insights"
+            "Implement strategic content planning based on PageRank insights",
         ]
 
         # Strategic recommendations
@@ -891,7 +942,7 @@ def _generate_content_performance_insights(analysis: Dict[str, Any]) -> Dict[str
             "Focus content creation on topics with high internal linking potential",
             "Develop comprehensive guides that can serve as hub pages",
             "Create content series that naturally link to each other",
-            "Implement topic modeling for better content organization"
+            "Implement topic modeling for better content organization",
         ]
 
     return insights
@@ -921,7 +972,7 @@ def register_pagerank_tools(mcp: FastMCP):
             damping_factor=damping_factor,
             max_iterations=max_iterations,
             use_sitemap=use_sitemap,
-            include_content_analysis=False  # Disable by default for backward compatibility
+            include_content_analysis=False,  # Disable by default for backward compatibility
         )
 
     @mcp.tool()
@@ -940,7 +991,7 @@ def register_pagerank_tools(mcp: FastMCP):
             max_pages=max_pages,
             use_sitemap=use_sitemap,
             urls=urls,
-            include_content_strategy=False  # Disable by default for backward compatibility
+            include_content_strategy=False,  # Disable by default for backward compatibility
         )
 
     @mcp.tool()
@@ -955,7 +1006,7 @@ def register_pagerank_tools(mcp: FastMCP):
             domain=domain,
             percentile=percentile,
             limit=limit,
-            include_content_recommendations=False  # Disable by default for backward compatibility
+            include_content_recommendations=False,  # Disable by default for backward compatibility
         )
 
     @mcp.tool()
@@ -966,7 +1017,7 @@ def register_pagerank_tools(mcp: FastMCP):
         """
         return await find_orphaned_pages_with_content_audit(
             domain=domain,
-            include_content_audit=False  # Disable by default for backward compatibility
+            include_content_audit=False,  # Disable by default for backward compatibility
         )
 
     @mcp.tool()
@@ -981,8 +1032,5 @@ def register_pagerank_tools(mcp: FastMCP):
         (Backward compatible version)
         """
         return await optimize_internal_links_with_content_strategy(
-            domain=domain,
-            max_pages=max_pages,
-            use_sitemap=use_sitemap,
-            urls=urls
+            domain=domain, max_pages=max_pages, use_sitemap=use_sitemap, urls=urls
         )

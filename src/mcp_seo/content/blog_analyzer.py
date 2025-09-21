@@ -14,7 +14,7 @@ Features:
 - Performance analysis for underperforming content
 - SEO recommendations with priority scoring
 
-Author: Extracted from GitAlchemy Kuzu PageRank Analyzer
+Author: MCP SEO Team
 """
 
 import logging

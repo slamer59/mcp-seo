@@ -2,7 +2,7 @@
 SEO Recommendation Engine Module
 
 This module provides intelligent SEO recommendation generation based on comprehensive
-analysis results. Extracted and enhanced from legacy SEO analyzer scripts, it offers
+analysis results. Enhanced recommendation engine that offers
 customizable recommendation strategies for different domains and industries.
 """
 
@@ -68,7 +68,7 @@ class SEORecommendationEngine:
     """
     Intelligent SEO recommendation engine with customizable strategies.
 
-    Enhanced version of the legacy _generate_recommendations method with
+    Enhanced recommendation generation method with
     comprehensive analysis capabilities and industry-specific recommendations.
     """
 
@@ -89,7 +89,7 @@ class SEORecommendationEngine:
         """
         Generate comprehensive SEO recommendations based on analysis results.
 
-        Enhanced version of the legacy recommendation generation with structured
+        Enhanced recommendation generation with structured
         output and configurable recommendation strategies.
 
         Args:
@@ -175,9 +175,9 @@ class SEORecommendationEngine:
         self, analysis_results: Dict[str, Any]
     ) -> List[str]:
         """
-        Generate quick, actionable recommendations similar to legacy format.
+        Generate quick, actionable recommendations for immediate implementation.
 
-        Maintains compatibility with legacy recommendation format while providing
+        Maintains intuitive recommendation format while providing
         enhanced analysis capabilities.
 
         Args:

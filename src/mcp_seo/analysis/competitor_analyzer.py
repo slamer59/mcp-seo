@@ -2,7 +2,7 @@
 SERP Competitor Analysis Module
 
 This module provides enhanced SERP analysis and competitor intelligence patterns
-extracted from legacy SEO analyzer scripts. It offers generic, reusable functionality
+for enhanced SEO competitor analysis. It offers generic, reusable functionality
 for analyzing competitor positions, identifying domain positions in search results,
 and comprehensive keyword ranking analysis.
 """
@@ -42,7 +42,7 @@ class SERPCompetitorAnalyzer:
     """
     Enhanced SERP competitor analysis with flexible competitor identification.
 
-    Extracted and generalized from legacy GitAlchemy SEO analyzer, this class provides
+    Enhanced competitor analysis engine that provides
     reusable patterns for analyzing competitor positions in search results and
     comprehensive keyword ranking analysis.
     """
@@ -72,7 +72,7 @@ class SERPCompetitorAnalyzer:
         """
         Find domain's position in SERP results with flexible matching options.
 
-        Enhanced version of the legacy _find_domain_position method with additional
+        Enhanced domain position analysis with additional
         matching options for more precise domain identification.
 
         Args:
@@ -139,7 +139,7 @@ class SERPCompetitorAnalyzer:
         """
         Analyze competitor positions in SERP results with flexible identification.
 
-        Enhanced version of the legacy _analyze_competitors method with configurable
+        Enhanced competitor analysis method with configurable
         competitor identification and additional analysis features.
 
         Args:
@@ -212,7 +212,7 @@ class SERPCompetitorAnalyzer:
         """
         Comprehensive keyword ranking analysis for target domain and competitors.
 
-        Enhanced version of the legacy analyze_keyword_rankings method with improved
+        Enhanced keyword ranking analysis method with improved
         configuration options and progress tracking.
 
         Args:

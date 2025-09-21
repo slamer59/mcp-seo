@@ -10,7 +10,7 @@ Components:
 - BlogAnalyzer: Comprehensive SEO analysis using graph metrics and content analysis
 - LinkOptimizer: Advanced internal link optimization and recommendation engine
 
-Author: Extracted and refactored from GitAlchemy Kuzu PageRank Analyzer
+Author: MCP SEO Team
 """
 
 from .markdown_parser import MarkdownParser

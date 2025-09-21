@@ -1,7 +1,7 @@
 """
 Analysis module for MCP SEO.
 
-This module contains advanced analysis components extracted from legacy SEO analyzer scripts,
+This module contains advanced analysis components for enhanced SEO optimization,
 providing enhanced SERP analysis, competitor intelligence, and recommendation generation.
 """
 

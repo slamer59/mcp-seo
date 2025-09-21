@@ -2,7 +2,7 @@
 Rich console reporting utilities for MCP SEO.
 
 Provides professional styled console output, progress tracking, and
-comprehensive report generation capabilities extracted from legacy scripts.
+comprehensive report generation capabilities for enhanced SEO analysis.
 """
 
 import json

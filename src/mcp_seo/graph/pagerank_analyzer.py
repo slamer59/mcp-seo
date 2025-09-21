@@ -1,7 +1,7 @@
 """
 PageRank Analyzer for SEO Link Structure Analysis
 
-Adapted from GitAlchemy PageRank Analyzer to work with MCP Data4SEO server.
+Enhanced PageRank analyzer for comprehensive SEO link structure analysis with MCP Data4SEO server.
 Calculates PageRank scores using Kuzu graph database for efficient analysis.
 """
 

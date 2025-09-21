@@ -13,7 +13,7 @@ Features:
 - Keyword extraction from content and headers
 - Content structure analysis
 
-Author: Extracted from GitAlchemy Kuzu PageRank Analyzer
+Author: MCP SEO Team
 """
 
 import logging

@@ -15,7 +15,7 @@ Features:
 - Link equity flow optimization
 - Contextual linking suggestions
 
-Author: Extracted from GitAlchemy Kuzu PageRank Analyzer
+Author: MCP SEO Team
 """
 
 import logging
