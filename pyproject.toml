@@ -32,7 +32,10 @@ test = [
     "pytest>=7.0.0",
     "pytest-asyncio>=0.21.0",
     "pytest-cov>=4.0.0",
-    "pytest-mock>=3.10.0"
+    "pytest-mock>=3.10.0",
+    "pytest-benchmark>=4.0.0",
+    "psutil>=5.9.0",
+    "aioresponses>=0.7.0"
 ]
 
 dev = [
@@ -40,6 +43,9 @@ dev = [
     "pytest-asyncio>=0.21.0",
     "pytest-cov>=4.0.0",
     "pytest-mock>=3.10.0",
+    "pytest-benchmark>=4.0.0",
+    "psutil>=5.9.0",
+    "aioresponses>=0.7.0",
     "black>=23.0.0",
     "isort>=5.12.0",
     "mypy>=1.0.0",
@@ -133,3 +139,25 @@ modules = [
 #     "mcp_seo.dataforseo.client",
 #     "mcp_seo.reporting.seo_reporter"
 # ]
+
+# Pytest configuration
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-ra -q --strict-markers --strict-config"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests",
+    "slow: Slow running tests",
+    "requires_network: Tests requiring network access",
+    "performance: Performance and load tests",
+    "memory: Memory usage tests",
+    "benchmark: Benchmark tests"
+]
+filterwarnings = [
+    "ignore::DeprecationWarning:pydantic*",
+    "ignore::PendingDeprecationWarning"
+]
