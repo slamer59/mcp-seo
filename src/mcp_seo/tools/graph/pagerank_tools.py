@@ -6,16 +6,17 @@ for PageRank analysis functionality.
 """
 
 import logging
+import re
 from typing import Dict, List, Optional
+
+# Import FastMCP and Pydantic for request models
+from fastmcp import FastMCP
+from pydantic import BaseModel, Field, field_validator
 
 # Import the core components
 from mcp_seo.graph.kuzu_manager import KuzuManager
 from mcp_seo.graph.link_graph_builder import LinkGraphBuilder
 from mcp_seo.graph.pagerank_analyzer import PageRankAnalyzer
-
-# Import FastMCP and Pydantic for request models
-from fastmcp import FastMCP
-from pydantic import BaseModel, Field, HttpUrl
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +24,7 @@ logger = logging.getLogger(__name__)
 class PageRankRequest(BaseModel):
     """Request model for PageRank analysis."""
 
-    domain: HttpUrl = Field(description="Domain to analyze (e.g., https://example.com)")
+    domain: str = Field(description="Domain to analyze (e.g., https://example.com)")
     max_pages: int = Field(
         default=100, ge=1, le=1000, description="Maximum pages to analyze"
     )
@@ -37,17 +38,66 @@ class PageRankRequest(BaseModel):
         default=True, description="Use sitemap.xml for page discovery"
     )
 
+    @field_validator("domain", mode="before")
+    @classmethod
+    def validate_domain_url(cls, v):
+        """Validate and normalize domain URL, handling cases without scheme."""
+        if not v:
+            raise ValueError("Domain is required")
+
+        url = str(v)
+
+        # Handle domain without scheme
+        if re.match(r"^localhost(:\d+)?(/.*)?$", url):
+            url = f"http://{url}"
+        elif re.match(r"^\d+\.\d+\.\d+\.\d+(:\d+)?(/.*)?$", url):  # IP address
+            url = f"http://{url}"
+        elif not url.startswith(("http://", "https://")):
+            # Default to https for domain names
+            url = f"https://{url}"
+
+        # Basic URL validation
+        if not re.match(r"^https?://[^\s/$.?#].[^\s]*$", url):
+            raise ValueError(f"Invalid domain format: {url}")
+
+        return url
+
 
 class LinkGraphRequest(BaseModel):
     """Request model for link graph building."""
 
-    domain: HttpUrl = Field(description="Domain to analyze")
+    domain: str = Field(description="Domain to analyze")
     max_pages: int = Field(
         default=100, ge=1, le=1000, description="Maximum pages to crawl"
     )
     use_sitemap: bool = Field(
         default=True, description="Use sitemap.xml for page discovery"
     )
+
+    @field_validator("domain", mode="before")
+    @classmethod
+    def validate_domain_url(cls, v):
+        """Validate and normalize domain URL, handling cases without scheme."""
+        if not v:
+            raise ValueError("Domain is required")
+
+        url = str(v)
+
+        # Handle domain without scheme
+        if re.match(r"^localhost(:\d+)?(/.*)?$", url):
+            url = f"http://{url}"
+        elif re.match(r"^\d+\.\d+\.\d+\.\d+(:\d+)?(/.*)?$", url):  # IP address
+            url = f"http://{url}"
+        elif not url.startswith(("http://", "https://")):
+            # Default to https for domain names
+            url = f"https://{url}"
+
+        # Basic URL validation
+        if not re.match(r"^https?://[^\s/$.?#].[^\s]*$", url):
+            raise ValueError(f"Invalid domain format: {url}")
+
+        return url
+
     urls: Optional[List[HttpUrl]] = Field(
         default=None, description="Specific URLs to analyze (if not using sitemap)"
     )
@@ -136,9 +186,7 @@ def register_pagerank_tools(mcp: FastMCP):
         pages based on PageRank scores for content strategy and navigation optimization.
         """
         # Create PillarPagesRequest from individual parameters for validation
-        request = PillarPagesRequest(
-            domain=domain, percentile=percentile, limit=limit
-        )
+        request = PillarPagesRequest(domain=domain, percentile=percentile, limit=limit)
         return await find_pillar_pages_standalone(request)
 
     @mcp.tool()

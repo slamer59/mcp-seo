@@ -175,7 +175,9 @@ def onpage_analysis_start(params) -> Dict[str, Any]:
     try:
         client, onpage_analyzer, _, _ = get_clients()
 
-        # Pydantic v2 model_validate handles JSON strings, dicts, etc. automatically
+        # Handle JSON string parameters
+        if isinstance(params, str):
+            params = json.loads(params)
         validated_params = OnPageAnalysisParams.model_validate(params)
 
         request = OnPageAnalysisRequest(
@@ -207,7 +209,9 @@ def onpage_analysis_results(params) -> Dict[str, Any]:
     - Page-by-page analysis summary
     """
     try:
-        # Pydantic v2 model_validate handles JSON strings, dicts, etc. automatically
+        # Handle JSON string parameters
+        if isinstance(params, str):
+            params = json.loads(params)
         validated_params = TaskStatusParams.model_validate(params)
 
         client, onpage_analyzer, _, _ = get_clients()
@@ -230,7 +234,9 @@ def onpage_page_details(params) -> Dict[str, Any]:
     - Technical issues per page
     """
     try:
-        # Pydantic v2 model_validate handles JSON strings, dicts, etc. automatically
+        # Handle JSON string parameters
+        if isinstance(params, str):
+            params = json.loads(params)
         validated_params = TaskStatusParams.model_validate(params)
 
         client, onpage_analyzer, _, _ = get_clients()
@@ -253,7 +259,9 @@ def onpage_duplicate_content(params) -> Dict[str, Any]:
     - Content cannibalization issues
     """
     try:
-        # Pydantic v2 model_validate handles JSON strings, dicts, etc. automatically
+        # Handle JSON string parameters
+        if isinstance(params, str):
+            params = json.loads(params)
         validated_params = TaskStatusParams.model_validate(params)
 
         client, onpage_analyzer, _, _ = get_clients()
@@ -278,7 +286,9 @@ def onpage_lighthouse_audit(params) -> Dict[str, Any]:
     - Page speed optimization recommendations
     """
     try:
-        # Pydantic v2 model_validate handles JSON strings, dicts, etc. automatically
+        # Handle JSON string parameters
+        if isinstance(params, str):
+            params = json.loads(params)
         validated_params = TaskStatusParams.model_validate(params)
 
         client, onpage_analyzer, _, _ = get_clients()
@@ -303,7 +313,9 @@ def keyword_analysis(params) -> Dict[str, Any]:
     - Monthly search patterns
     """
     try:
-        # Pydantic v2 model_validate handles JSON strings, dicts, etc. automatically
+        # Handle JSON string parameters
+        if isinstance(params, str):
+            params = json.loads(params)
         validated_params = KeywordAnalysisParams.model_validate(params)
 
         client, _, keyword_analyzer, _ = get_clients()
@@ -374,7 +386,9 @@ def serp_analysis(params) -> Dict[str, Any]:
     - Competitive landscape analysis
     """
     try:
-        # Pydantic v2 model_validate handles JSON strings, dicts, etc. automatically
+        # Handle JSON string parameters
+        if isinstance(params, str):
+            params = json.loads(params)
         validated_params = SERPAnalysisParams.model_validate(params)
 
         client, _, keyword_analyzer, _ = get_clients()
@@ -443,7 +457,9 @@ def domain_analysis(params) -> Dict[str, Any]:
     - SEO growth opportunities
     """
     try:
-        # Pydantic v2 model_validate handles JSON strings, dicts, etc. automatically
+        # Handle JSON string parameters
+        if isinstance(params, str):
+            params = json.loads(params)
         validated_params = DomainAnalysisParams.model_validate(params)
 
         client, _, _, competitor_analyzer = get_clients()
@@ -478,7 +494,9 @@ def competitor_comparison(params) -> Dict[str, Any]:
     - Strategic recommendations
     """
     try:
-        # Pydantic v2 model_validate handles JSON strings, dicts, etc. automatically
+        # Handle JSON string parameters
+        if isinstance(params, str):
+            params = json.loads(params)
         validated_params = CompetitorComparisonParams.model_validate(params)
 
         client, _, _, competitor_analyzer = get_clients()
@@ -508,7 +526,9 @@ def content_gap_analysis(params) -> Dict[str, Any]:
     - Quick win opportunities
     """
     try:
-        # Pydantic v2 model_validate handles JSON strings, dicts, etc. automatically
+        # Handle JSON string parameters
+        if isinstance(params, str):
+            params = json.loads(params)
         validated_params = ContentGapAnalysisParams.model_validate(params)
 
         client, _, _, competitor_analyzer = get_clients()
@@ -596,7 +616,9 @@ def task_status(params) -> Dict[str, Any]:
     - Error details if applicable
     """
     try:
-        # Pydantic v2 model_validate handles JSON strings, dicts, etc. automatically
+        # Handle JSON string parameters
+        if isinstance(params, str):
+            params = json.loads(params)
         validated_params = TaskStatusParams.model_validate(params)
 
         client, _, _, _ = get_clients()

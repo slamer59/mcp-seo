@@ -82,5 +82,4 @@ class TestJSONParameterValidation:
         # Test 3: Pydantic model instance (this should also work)
         existing_model = OnPageAnalysisParams(target="localhost:3000", max_crawl_pages=50)
         validated = OnPageAnalysisParams.model_validate(existing_model)
-        assert validated.target == "localhost:3000"        validated = OnPageAnalysisParams.model_validate(existing_model)
         assert validated.target == "localhost:3000"
