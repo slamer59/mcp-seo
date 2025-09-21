@@ -1395,5 +1395,108 @@ class TestServerIntegration:
         assert "content_gaps" in gap_result
 
 
+class TestJSONParameterValidation:
+    """Test JSON parameter handling for MCP tools."""
+
+    def test_localhost_url_validation(self):
+        """Test that localhost URLs are properly handled."""
+        import json
+        from mcp_seo.server import OnPageAnalysisParams
+
+        # Test with localhost:3000 (the original error case)
+        params_dict = {
+            "target": "localhost:3000",
+            "max_crawl_pages": 50,
+            "crawl_delay": 1,
+            "respect_sitemap": True,
+            "enable_javascript": True
+        }
+
+        # This should work now - the key is that model_validate processes the dict without error
+        validated = OnPageAnalysisParams.model_validate(params_dict)
+        assert validated.target == "localhost:3000"  # No URL normalization expected
+        assert validated.max_crawl_pages == 50
+
+    def test_json_string_validation(self):
+        """Test that JSON strings are properly parsed."""
+        import json
+        from mcp_seo.server import OnPageAnalysisParams
+
+        json_string = json.dumps({
+            "target": "localhost:3000",
+            "max_crawl_pages": 50,
+            "crawl_delay": 1,
+            "respect_sitemap": True,
+            "enable_javascript": True
+        })
+
+        # Pydantic v2 model_validate should handle this
+        validated = OnPageAnalysisParams.model_validate(json.loads(json_string))
+        assert validated.target == "localhost:3000"  # No URL normalization expected
+
+    def test_mcp_tools_json_string_handling(self):
+        """Test that MCP tools handle JSON strings correctly (regression test)."""
+        import json
+        from mcp_seo.server import KeywordAnalysisParams, DomainAnalysisParams
+
+        # Test KeywordAnalysisParams with JSON string (note: keywords is plural list)
+        keyword_json_string = '{"keywords": ["gitlab mobile client"], "location": "usa", "language": "english"}'
+
+        # Simulate what MCP tools do: check if string, parse JSON, then validate
+        params = keyword_json_string
+        if isinstance(params, str):
+            params = json.loads(params)
+        validated = KeywordAnalysisParams.model_validate(params)
+
+        assert validated.keywords == ["gitlab mobile client"]
+        assert validated.location == "usa"
+        assert validated.language == "english"
+
+        # Test DomainAnalysisParams with JSON string
+        domain_json_string = '{"target": "gitalchemy.app"}'
+
+        params = domain_json_string
+        if isinstance(params, str):
+            params = json.loads(params)
+        validated = DomainAnalysisParams.model_validate(params)
+
+        assert validated.target == "gitalchemy.app"
+
+    def test_common_parameter_mistakes(self):
+        """Test common parameter format mistakes that users might make."""
+        import json
+        from mcp_seo.server import KeywordAnalysisParams
+
+        # Common mistake: using "keyword" (singular) instead of "keywords" (plural)
+        with pytest.raises(Exception):  # Should fail validation
+            json_string = '{"keyword": "test", "location": "usa"}'
+            params = json.loads(json_string)
+            KeywordAnalysisParams.model_validate(params)
+
+        # Correct format: "keywords" as list
+        json_string = '{"keywords": ["test"], "location": "usa"}'
+        params = json.loads(json_string)
+        validated = KeywordAnalysisParams.model_validate(params)
+        assert validated.keywords == ["test"]
+
+    def test_various_url_formats(self):
+        """Test different URL formats are accepted without error."""
+        from mcp_seo.server import OnPageAnalysisParams
+
+        test_cases = [
+            "localhost:3000",
+            "192.168.1.1:8080",
+            "example.com",
+            "http://example.com",
+            "https://example.com",
+        ]
+
+        for input_url in test_cases:
+            params = {"target": input_url}
+            validated = OnPageAnalysisParams.model_validate(params)
+            # The key test is that validation succeeds - no URL normalization happens
+            assert validated.target == input_url
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

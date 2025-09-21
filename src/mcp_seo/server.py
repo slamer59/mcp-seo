@@ -27,6 +27,7 @@ from mcp_seo.models.seo_models import (
 from mcp_seo.tools.competitor_analyzer import CompetitorAnalyzer
 from mcp_seo.tools.keyword_analyzer import KeywordAnalyzer
 from mcp_seo.tools.onpage_analyzer import OnPageAnalyzer
+from mcp_seo.tools.content_analyzer import ContentKeywordAnalyzer
 
 # Initialize FastMCP server
 mcp = FastMCP("FastMCP SEO Analysis Server")
@@ -147,6 +148,23 @@ class ContentGapAnalysisParams(BaseModel):
     )
     location: str = Field(default="usa", description="Geographic location")
     language: str = Field(default="english", description="Language for analysis")
+
+
+class ContentKeywordAnalysisParams(BaseModel):
+    """Parameters for content keyword analysis."""
+
+    content: str = Field(..., description="Content text to analyze")
+    url: str = Field(default="", description="Optional URL of the content")
+    title: str = Field(default="", description="Optional title of the content")
+    target_keywords: List[str] = Field(
+        default=[], description="List of target keywords to optimize for"
+    )
+    semantic_groups: Dict[str, List[str]] = Field(
+        default={}, description="Semantic keyword groups (e.g., {'technology': ['app', 'mobile'], 'business': ['enterprise', 'team']})"
+    )
+    competitor_content: List[str] = Field(
+        default=[], description="List of competitor content for cannibalization analysis"
+    )
 
 
 class TaskStatusParams(BaseModel):
@@ -775,6 +793,74 @@ def comprehensive_seo_audit(params: Dict[str, Any]) -> Dict[str, Any]:
 
     except Exception as e:
         return {"error": f"Failed to run comprehensive SEO audit: {str(e)}"}
+
+
+# Content Analysis Tool
+@mcp.tool()
+def content_keyword_analysis(params) -> Dict[str, Any]:
+    """
+    Advanced content keyword density analysis and optimization.
+
+    Provides detailed keyword analysis including:
+    - Keyword density analysis with optimal range detection
+    - Semantic keyword coverage analysis
+    - Long-tail keyword opportunity identification
+    - Content cannibalization detection
+    - Optimization recommendations with actionable insights
+    """
+    try:
+        # Handle JSON string parameters
+        if isinstance(params, str):
+            params = json.loads(params)
+        validated_params = ContentKeywordAnalysisParams.model_validate(params)
+
+        analyzer = ContentKeywordAnalyzer()
+
+        result = analyzer.analyze_content(
+            content=validated_params.content,
+            url=validated_params.url,
+            title=validated_params.title,
+            target_keywords=validated_params.target_keywords,
+            semantic_groups=validated_params.semantic_groups if validated_params.semantic_groups else None,
+            competitor_content=validated_params.competitor_content,
+        )
+
+        # Generate formatted report
+        report = analyzer.generate_content_report(result)
+
+        return {
+            "analysis_results": {
+                "url": result.url,
+                "title": result.title,
+                "word_count": result.word_count,
+                "optimization_score": result.optimization_score,
+                "keyword_density": result.keyword_density,
+                "semantic_coverage": result.semantic_coverage,
+                "long_tail_opportunities": [
+                    {
+                        "keyword": opp.keyword,
+                        "current_count": opp.current_count,
+                        "target_count": opp.target_count,
+                        "opportunity_type": opp.opportunity_type,
+                        "intent": opp.intent,
+                    }
+                    for opp in result.long_tail_opportunities
+                ],
+                "cannibalization_risk": result.cannibalization_risk,
+                "recommendations": result.recommendations,
+            },
+            "formatted_report": report,
+            "summary": {
+                "total_keywords_analyzed": len(result.keyword_density),
+                "semantic_groups_found": len(result.semantic_coverage),
+                "optimization_opportunities": len(result.long_tail_opportunities),
+                "cannibalization_risks": len(result.cannibalization_risk),
+                "priority_recommendations": len([r for r in result.recommendations if r.get("priority") == "high"]),
+            },
+        }
+
+    except Exception as e:
+        return {"error": f"Failed to analyze content keywords: {str(e)}"}
 
 
 # Register PageRank and graph analysis tools
