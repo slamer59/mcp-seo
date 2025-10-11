@@ -3,10 +3,11 @@ Configuration settings for FastMCP SEO server.
 """
 
 import os
-from typing import Optional
-from pydantic_settings import BaseSettings
-from pydantic import Field
 from functools import lru_cache
+from typing import Optional
+
+from pydantic import Field
+from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
@@ -49,7 +50,8 @@ class Settings(BaseSettings):
     model_config = {
         "env_file": ".env",
         "env_file_encoding": "utf-8",
-        "case_sensitive": False
+        "case_sensitive": False,
+        "extra": "ignore"
     }
 
 
