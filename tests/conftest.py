@@ -3,15 +3,20 @@ Pytest configuration and fixtures for MCP Data4SEO tests.
 """
 
 import asyncio
-import pytest
 import tempfile
 from pathlib import Path
 from typing import Dict, List
 from unittest.mock import AsyncMock, MagicMock
 
+import pytest
+from dotenv import load_dotenv
+
 from mcp_seo.graph.kuzu_manager import KuzuManager
-from mcp_seo.graph.pagerank_analyzer import PageRankAnalyzer
 from mcp_seo.graph.link_graph_builder import LinkGraphBuilder
+from mcp_seo.graph.pagerank_analyzer import PageRankAnalyzer
+
+# Load environment variables from .env file for live API tests
+load_dotenv()
 
 
 @pytest.fixture(scope="session")
@@ -47,32 +52,32 @@ def sample_pages_data():
             "url": "https://example.com/",
             "title": "Home Page",
             "status_code": 200,
-            "content_length": 1000
+            "content_length": 1000,
         },
         {
             "url": "https://example.com/about",
             "title": "About Us",
             "status_code": 200,
-            "content_length": 800
+            "content_length": 800,
         },
         {
             "url": "https://example.com/contact",
             "title": "Contact",
             "status_code": 200,
-            "content_length": 500
+            "content_length": 500,
         },
         {
             "url": "https://example.com/blog",
             "title": "Blog",
             "status_code": 200,
-            "content_length": 1200
+            "content_length": 1200,
         },
         {
             "url": "https://example.com/products",
             "title": "Products",
             "status_code": 200,
-            "content_length": 900
-        }
+            "content_length": 900,
+        },
     ]
 
 
@@ -110,16 +115,14 @@ def pagerank_analyzer(populated_kuzu_manager):
 def link_graph_builder(kuzu_manager):
     """LinkGraphBuilder instance."""
     return LinkGraphBuilder(
-        base_url="https://example.com",
-        kuzu_manager=kuzu_manager,
-        max_pages=50
+        base_url="https://example.com", kuzu_manager=kuzu_manager, max_pages=50
     )
 
 
 @pytest.fixture
 def mock_sitemap_xml():
     """Mock sitemap XML content."""
-    return '''<?xml version="1.0" encoding="UTF-8"?>
+    return """<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
         <loc>https://example.com/</loc>
@@ -136,13 +139,13 @@ def mock_sitemap_xml():
     <url>
         <loc>https://example.com/products</loc>
     </url>
-</urlset>'''
+</urlset>"""
 
 
 @pytest.fixture
 def mock_html_content():
     """Mock HTML content with links."""
-    return '''
+    return """
     <!DOCTYPE html>
     <html>
     <head>
@@ -165,27 +168,30 @@ def mock_html_content():
         </footer>
     </body>
     </html>
-    '''
+    """
 
 
 @pytest.fixture
 def mock_aiohttp_session():
     """Mock aiohttp session for testing web requests."""
     session_mock = AsyncMock()
-    
+
     # Mock response for sitemap
     sitemap_response_mock = AsyncMock()
     sitemap_response_mock.status = 200
-    sitemap_response_mock.text = AsyncMock(return_value='''<?xml version="1.0" encoding="UTF-8"?>
+    sitemap_response_mock.text = AsyncMock(
+        return_value="""<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url><loc>https://example.com/</loc></url>
     <url><loc>https://example.com/about</loc></url>
-</urlset>''')
-    
+</urlset>"""
+    )
+
     # Mock response for HTML pages
     html_response_mock = AsyncMock()
     html_response_mock.status = 200
-    html_response_mock.text = AsyncMock(return_value='''
+    html_response_mock.text = AsyncMock(
+        return_value="""
     <html>
     <head><title>Test Page</title></head>
     <body>
@@ -195,28 +201,29 @@ def mock_aiohttp_session():
         </nav>
     </body>
     </html>
-    ''')
-    
+    """
+    )
+
     # Configure the session mock
     session_mock.get.return_value.__aenter__.return_value = html_response_mock
-    
+
     return session_mock
 
 
 class MockResponse:
     """Mock HTTP response for testing."""
-    
+
     def __init__(self, status=200, text="", headers=None):
         self.status = status
         self._text = text
         self.headers = headers or {}
-    
+
     async def text(self):
         return self._text
-    
+
     async def __aenter__(self):
         return self
-    
+
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         pass
 
@@ -233,4 +240,4 @@ def expected_pagerank_results():
 
 
 # Test categories
-pytestmark = pytest.mark.asyncio
+pytestmark = pytest.mark.asynciopytestmark = pytest.mark.asyncio

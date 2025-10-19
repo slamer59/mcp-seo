@@ -360,8 +360,20 @@ def keyword_analysis(params) -> Dict[str, Any]:
         return {"error": f"Failed to analyze keywords: {str(e)}"}
 
 
+class KeywordSuggestionsParams(BaseModel):
+    """Parameters for keyword suggestions."""
+
+    keyword: str = Field(..., description="Seed keyword to get suggestions for")
+    seed_keyword: Optional[str] = Field(None, description="Alternative field for seed keyword (deprecated, use 'keyword')")
+    location: Optional[str] = Field(None, description="Geographic location name (usa, uk, canada, etc.)")
+    location_code: Optional[int] = Field(None, description="DataForSEO location code (e.g., 2840 for USA)")
+    language: Optional[str] = Field(None, description="Language name (english, spanish, etc.)")
+    language_code: Optional[str] = Field(None, description="DataForSEO language code (e.g., 'en', 'es')")
+    limit: int = Field(default=100, ge=1, le=1000, description="Maximum number of suggestions")
+
+
 @mcp.tool()
-def keyword_suggestions(params: Dict[str, Any]) -> Dict[str, Any]:
+def keyword_suggestions(params) -> Dict[str, Any]:
     """
     Get keyword suggestions based on seed keyword.
 
@@ -372,20 +384,75 @@ def keyword_suggestions(params: Dict[str, Any]) -> Dict[str, Any]:
     - Search volume and competition data for each suggestion
     """
     try:
+        # Handle JSON string parameters
+        if isinstance(params, str):
+            params = json.loads(params)
+        validated_params = KeywordSuggestionsParams.model_validate(params)
+
         client, _, keyword_analyzer, _ = get_clients()
 
-        seed_keyword = params.get("seed_keyword", "")
-        location = params.get("location", "usa")
-        language = params.get("language", "english")
-        limit = params.get("limit", 100)
-
+        # Get keyword from either field
+        seed_keyword = validated_params.seed_keyword or validated_params.keyword
         if not seed_keyword:
-            return {"error": "seed_keyword parameter is required"}
+            return {"error": "keyword or seed_keyword parameter is required"}
 
-        result = keyword_analyzer.get_keyword_suggestions(
-            seed_keyword, location, language, limit
+        # Handle location - use location_code if provided, otherwise resolve from location name
+        if validated_params.location_code:
+            location_code = validated_params.location_code
+        else:
+            location = validated_params.location or "usa"
+            location_code = get_location_code(location)
+
+        # Handle language - use language_code if provided, otherwise resolve from language name
+        if validated_params.language_code:
+            language_code = validated_params.language_code
+        else:
+            language = validated_params.language or "english"
+            language_code = get_language_code(language)
+
+        # Call the analyzer method directly with location_code and language_code
+        result = client.get_keyword_suggestions(
+            keyword=seed_keyword,
+            location_code=location_code,
+            language_code=language_code,
+            limit=validated_params.limit
         )
-        return result
+
+        # Process the result
+        if not result.get("tasks"):
+            raise ApiException("No task data returned")
+
+        task = result["tasks"][0]
+        task_id = task.get("id", "live-sync")
+
+        if not task.get("result") or len(task["result"]) == 0:
+            return {
+                "task_id": task_id,
+                "status": "failed",
+                "error": "No keyword suggestions available",
+            }
+
+        # Process suggestions
+        suggestions = []
+        task_result = task["result"]
+
+        for item in task_result:
+            suggestion = {
+                "keyword": item.get("keyword", ""),
+                "search_volume": item.get("search_volume"),
+                "cpc": item.get("cpc"),
+                "competition": item.get("competition"),
+                "competition_level": item.get("competition_level"),
+            }
+            suggestions.append(suggestion)
+
+        return {
+            "task_id": task_id,
+            "status": "completed",
+            "seed_keyword": seed_keyword,
+            "suggestions": suggestions,
+            "total_suggestions": len(suggestions),
+        }
 
     except Exception as e:
         return {"error": f"Failed to get keyword suggestions: {str(e)}"}

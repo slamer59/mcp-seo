@@ -171,8 +171,8 @@ class KeywordAnalyzer:
                 }
                 suggestions.append(suggestion)
 
-            # Sort by search volume (descending)
-            suggestions.sort(key=lambda x: x.get("search_volume", 0), reverse=True)
+            # Sort by search volume (descending), handling None values
+            suggestions.sort(key=lambda x: x.get("search_volume") or 0, reverse=True)
 
             # Create structured result
             result = {
@@ -233,6 +233,15 @@ class KeywordAnalyzer:
 
             # Process SERP results
             task_result = task["result"][0]
+
+            # Validate task_result is a dictionary
+            if not isinstance(task_result, dict):
+                return {
+                    "task_id": task_id,
+                    "status": "failed",
+                    "error": f"Invalid SERP data format: expected dict, got {type(task_result).__name__}",
+                }
+
             organic_results = []
             paid_results = []
             featured_snippet = None
@@ -282,11 +291,19 @@ class KeywordAnalyzer:
 
                 elif item_type == "people_also_ask":
                     for paa_item in item.get("items", []):
-                        people_also_ask.append(paa_item.get("question", ""))
+                        # paa_item can be either a dict with "question" or a string
+                        if isinstance(paa_item, dict):
+                            people_also_ask.append(paa_item.get("question", ""))
+                        elif isinstance(paa_item, str):
+                            people_also_ask.append(paa_item)
 
                 elif item_type == "related_searches":
                     for related_item in item.get("items", []):
-                        related_searches.append(related_item.get("title", ""))
+                        # related_item can be either a dict with "title" or a string
+                        if isinstance(related_item, dict):
+                            related_searches.append(related_item.get("title", ""))
+                        elif isinstance(related_item, str):
+                            related_searches.append(related_item)
 
             # Analyze competitive landscape
             competitive_analysis = self._analyze_serp_competition(organic_results)
@@ -399,8 +416,11 @@ class KeywordAnalyzer:
         all_keywords = keywords_data + suggestions[:20]  # Include top suggestions
 
         for kw in all_keywords:
-            volume = kw.get("search_volume", 0)
-            competition = kw.get("competition", 0)
+            # Safely convert to numeric types
+            volume = kw.get("search_volume") or 0
+            volume = int(volume) if isinstance(volume, (int, float, str)) and str(volume).replace('.', '', 1).replace('-', '', 1).isdigit() else 0
+            competition = kw.get("competition") or 0
+            competition = float(competition) if isinstance(competition, (int, float, str)) and str(competition).replace('.', '', 1).replace('-', '', 1).isdigit() else 0
             keyword = kw.get("keyword", "")
 
             if volume > 1000 and competition < 0.3:
@@ -470,8 +490,11 @@ class KeywordAnalyzer:
 
         for suggestion in suggestions:
             keyword = suggestion.get("keyword", "").lower()
-            volume = suggestion.get("search_volume", 0)
-            competition = suggestion.get("competition", 0)
+            # Safely convert to numeric types
+            volume = suggestion.get("search_volume") or 0
+            volume = int(volume) if isinstance(volume, (int, float, str)) and str(volume).replace('.', '', 1).isdigit() else 0
+            competition = suggestion.get("competition") or 0
+            competition = float(competition) if isinstance(competition, (int, float, str)) and str(competition).replace('.', '', 1).isdigit() else 0
 
             # High volume
             if volume > 5000:

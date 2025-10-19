@@ -149,6 +149,33 @@ class KeywordData(BaseModel):
     competition_level: Optional[str] = None
     monthly_searches: Optional[List[Dict[str, Any]]] = None
 
+    @field_validator('competition', mode='before')
+    @classmethod
+    def validate_competition(cls, v):
+        """Convert string competition levels to float values."""
+        if v is None:
+            return None
+
+        # If it's already a number, return it
+        if isinstance(v, (int, float)):
+            return float(v)
+
+        # If it's a string, try to convert or map competition level
+        if isinstance(v, str):
+            # Try parsing as float first
+            try:
+                return float(v)
+            except ValueError:
+                # Map string levels to float values
+                competition_map = {
+                    "LOW": 0.2,
+                    "MEDIUM": 0.5,
+                    "HIGH": 0.8,
+                }
+                return competition_map.get(v.upper(), 0.5)
+
+        return None
+
 
 class KeywordAnalysisRequest(BaseModel):
     """Keyword analysis request model."""
