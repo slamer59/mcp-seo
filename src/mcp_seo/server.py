@@ -500,8 +500,18 @@ def serp_analysis(params) -> Dict[str, Any]:
         return {"error": f"Failed to analyze SERP: {str(e)}"}
 
 
+class KeywordDifficultyParams(BaseModel):
+    """Parameters for keyword difficulty analysis."""
+
+    keywords: List[str] = Field(..., min_length=1, max_length=10, description="List of keywords to analyze difficulty for")
+    location: Optional[str] = Field(None, description="Geographic location name (usa, uk, canada, etc.)")
+    location_code: Optional[int] = Field(None, description="DataForSEO location code (e.g., 2840 for USA)")
+    language: Optional[str] = Field(None, description="Language name (english, spanish, etc.)")
+    language_code: Optional[str] = Field(None, description="DataForSEO language code (e.g., 'en', 'es')")
+
+
 @mcp.tool()
-def keyword_difficulty(params: Dict[str, Any]) -> Dict[str, Any]:
+def keyword_difficulty(params) -> Dict[str, Any]:
     """
     Calculate keyword difficulty scores for target keywords.
 
@@ -512,16 +522,30 @@ def keyword_difficulty(params: Dict[str, Any]) -> Dict[str, Any]:
     - Keyword-specific difficulty metrics
     """
     try:
+        # Handle JSON string parameters
+        if isinstance(params, str):
+            params = json.loads(params)
+        validated_params = KeywordDifficultyParams.model_validate(params)
+
         client, _, keyword_analyzer, _ = get_clients()
 
-        keywords = params.get("keywords", [])
-        location = params.get("location", "usa")
-        language = params.get("language", "english")
+        # Handle location - use location_code if provided, otherwise resolve from location name
+        if validated_params.location_code:
+            location = str(validated_params.location_code)  # Convert for analyzer
+        else:
+            location = validated_params.location or "usa"
 
-        if not keywords:
-            return {"error": "keywords parameter is required"}
+        # Handle language - use language_code if provided, otherwise resolve from language name
+        if validated_params.language_code:
+            language = validated_params.language_code
+        else:
+            language = validated_params.language or "english"
 
-        result = keyword_analyzer.get_keyword_difficulty(keywords, location, language)
+        result = keyword_analyzer.get_keyword_difficulty(
+            validated_params.keywords,
+            location,
+            language
+        )
         return result
 
     except Exception as e:
