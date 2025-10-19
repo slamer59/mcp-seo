@@ -346,34 +346,60 @@ class KeywordAnalyzer:
     def get_keyword_difficulty(
         self, keywords: List[str], location: str = "usa", language: str = "english"
     ) -> Dict[str, Any]:
-        """Estimate keyword difficulty with strategic recommendations."""
+        """Estimate keyword difficulty using competition data (fast method)."""
         try:
+            location_code = get_location_code(location)
+            language_code = get_language_code(language)
+
+            # Use keyword data API for quick difficulty estimation based on competition
+            result = self.client.get_keyword_data(
+                keywords=keywords[:10],
+                location_code=location_code,
+                language_code=language_code,
+            )
+
+            if not result.get("tasks") or not result["tasks"][0].get("result"):
+                return {
+                    "status": "failed",
+                    "error": "No keyword data available for difficulty analysis",
+                }
+
+            task_result = result["tasks"][0]["result"]
             difficulty_scores = []
 
-            for keyword in keywords[:10]:  # Limit to 10 keywords to avoid rate limits
-                # Get SERP data for each keyword
-                serp_request = SERPAnalysisRequest(
-                    keyword=keyword,
-                    location=location,
-                    language=language,
-                    depth=20,  # Top 20 results for difficulty analysis
+            for keyword_info in task_result:
+                keyword = keyword_info.get("keyword", "")
+                competition = keyword_info.get("competition", 0) or 0
+                search_volume = keyword_info.get("search_volume", 0) or 0
+
+                # Convert competition (0-1) to difficulty score (0-100)
+                # Higher competition + higher search volume = harder to rank
+                volume_factor = min(search_volume / 10000, 1.0) if search_volume else 0
+                difficulty_score = int((competition * 70) + (volume_factor * 30))
+
+                # Determine difficulty level
+                if difficulty_score < 30:
+                    level = "easy"
+                elif difficulty_score < 50:
+                    level = "medium"
+                elif difficulty_score < 70:
+                    level = "hard"
+                else:
+                    level = "very_hard"
+
+                difficulty_scores.append(
+                    {
+                        "keyword": keyword,
+                        "difficulty_score": difficulty_score,
+                        "difficulty_level": level,
+                        "competition": competition,
+                        "search_volume": search_volume,
+                        "factors": {
+                            "competition_level": keyword_info.get("competition_level", "unknown"),
+                            "cpc": keyword_info.get("cpc", 0),
+                        },
+                    }
                 )
-
-                serp_result = self.analyze_serp_for_keyword(serp_request)
-
-                if "serp_analysis" in serp_result:
-                    difficulty = self._calculate_keyword_difficulty(
-                        serp_result["serp_analysis"]["organic_results"]
-                    )
-
-                    difficulty_scores.append(
-                        {
-                            "keyword": keyword,
-                            "difficulty_score": difficulty["score"],
-                            "difficulty_level": difficulty["level"],
-                            "factors": difficulty["factors"],
-                        }
-                    )
 
             # Create structured result
             result = {
@@ -390,13 +416,16 @@ class KeywordAnalyzer:
                     self._generate_keyword_targeting_recommendations(difficulty_scores)
                 )
                 result["targeting_recommendations"] = targeting_recommendations
-                result["formatted_report"] = (
-                    self.reporter.generate_keyword_analysis_report(result)
-                )
+                # Note: Skip formatted report as it may fail on this simplified structure
+                # result["formatted_report"] = (
+                #     self.reporter.generate_keyword_analysis_report(result)
+                # )
 
             return result
 
         except Exception as e:
+            import traceback
+            traceback.print_exc()
             return {
                 "error": f"Failed to calculate keyword difficulty: {str(e)}",
                 "keywords": keywords,

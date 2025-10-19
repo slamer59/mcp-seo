@@ -529,17 +529,9 @@ def keyword_difficulty(params) -> Dict[str, Any]:
 
         client, _, keyword_analyzer, _ = get_clients()
 
-        # Handle location - use location_code if provided, otherwise resolve from location name
-        if validated_params.location_code:
-            location = str(validated_params.location_code)  # Convert for analyzer
-        else:
-            location = validated_params.location or "usa"
-
-        # Handle language - use language_code if provided, otherwise resolve from language name
-        if validated_params.language_code:
-            language = validated_params.language_code
-        else:
-            language = validated_params.language or "english"
+        # Handle location - pass name, not code (analyzer will convert)
+        location = validated_params.location or "usa"
+        language = validated_params.language or "english"
 
         result = keyword_analyzer.get_keyword_difficulty(
             validated_params.keywords,
