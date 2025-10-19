@@ -11,7 +11,7 @@ from typing import Dict, List, Optional
 
 # Import FastMCP and Pydantic for request models
 from fastmcp import FastMCP
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, HttpUrl
 
 # Import the core components
 from mcp_seo.graph.kuzu_manager import KuzuManager

@@ -31,43 +31,40 @@ class TestEnhancedKeywordAnalyzer:
         """Mock DataForSEO client."""
         client = Mock()
 
-        # Mock keyword data response
+        # Mock keyword data response (live API - returns immediately with results)
         client.get_keyword_data.return_value = {
-            "tasks": [{"id": "test_task_123", "status_code": 20000}]
-        }
-
-        # Mock task completion response
-        client.wait_for_task_completion.return_value = {
             "tasks": [
                 {
+                    "id": "test_task_123",
+                    "status_code": 20000,
                     "result": [
                         {
-                            "items": [
-                                {
-                                    "keyword": "seo tools",
-                                    "search_volume": 5400,
-                                    "cpc": 2.50,
-                                    "competition": 0.85,
-                                    "competition_level": "HIGH",
-                                },
-                                {
-                                    "keyword": "keyword research",
-                                    "search_volume": 8100,
-                                    "cpc": 3.20,
-                                    "competition": 0.75,
-                                    "competition_level": "HIGH",
-                                },
-                            ]
-                        }
+                            "keyword": "seo tools",
+                            "search_volume": 5400,
+                            "cpc": 2.50,
+                            "competition": 0.85,
+                            "competition_level": "HIGH",
+                            "monthly_searches": [],
+                        },
+                        {
+                            "keyword": "keyword research",
+                            "search_volume": 8100,
+                            "cpc": 3.20,
+                            "competition": 0.75,
+                            "competition_level": "HIGH",
+                            "monthly_searches": [],
+                        },
                     ]
                 }
             ]
         }
 
-        # Mock suggestions response
+        # Mock suggestions response (live API - returns immediately with results)
         client.get_keyword_suggestions.return_value = {
             "tasks": [
                 {
+                    "id": "suggestion_task_456",
+                    "status_code": 20000,
                     "result": [
                         {
                             "keyword": "seo audit tools",
@@ -349,8 +346,8 @@ class TestEnhancedReporting:
         assert isinstance(result, str)
         assert "seo tools" in result
         assert "keyword research" in result
-        assert "5,400" in result  # Search volume (formatted with comma)
-        assert "8,100" in result  # Search volume (formatted with comma)
+        assert "5400" in result  # Search volume
+        assert "8100" in result  # Search volume
 
     def test_rich_reporter_initialization(self, rich_reporter):
         """Test Rich Reporter initialization."""

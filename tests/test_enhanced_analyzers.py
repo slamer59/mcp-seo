@@ -30,62 +30,51 @@ class TestEnhancedKeywordAnalyzer:
         """Mock DataForSEO client."""
         client = Mock(spec=DataForSEOClient)
 
-        # Mock keyword data response
+        # Mock keyword data response (live API - returns immediately with results)
         client.get_keyword_data.return_value = {
             "tasks": [{
                 "id": "test_task_123",
-                "status_code": 20000
+                "status_code": 20000,
+                "result": [
+                    {
+                        "keyword": "seo tools",
+                        "search_volume": 5400,
+                        "cpc": 2.50,
+                        "competition": 0.85,
+                        "competition_level": "HIGH",
+                        "monthly_searches": []
+                    },
+                    {
+                        "keyword": "keyword research",
+                        "search_volume": 8100,
+                        "cpc": 3.20,
+                        "competition": 0.75,
+                        "competition_level": "HIGH",
+                        "monthly_searches": []
+                    }
+                ]
             }]
         }
 
-        # Mock task completion response with side effect for different task types
-        def mock_wait_for_completion(task_id, task_type):
-            if task_type == "keywords" and "suggestion" in task_id:
-                return {
-                    "tasks": [{
-                        "result": [{
-                            "items": [{
-                                "keyword": "seo audit tools",
-                                "search_volume": 1200,
-                                "cpc": 4.10,
-                                "competition": 0.65
-                            }, {
-                                "keyword": "free seo tools",
-                                "search_volume": 3300,
-                                "cpc": 1.80,
-                                "competition": 0.55
-                            }]
-                        }]
-                    }]
-                }
-            else:
-                return {
-                    "tasks": [{
-                        "result": [{
-                            "items": [{
-                                "keyword": "seo tools",
-                                "search_volume": 5400,
-                                "cpc": 2.50,
-                                "competition": 0.85,
-                                "competition_level": "HIGH"
-                            }, {
-                                "keyword": "keyword research",
-                                "search_volume": 8100,
-                                "cpc": 3.20,
-                                "competition": 0.75,
-                                "competition_level": "HIGH"
-                            }]
-                        }]
-                    }]
-                }
-
-        client.wait_for_task_completion.side_effect = mock_wait_for_completion
-
-        # Mock suggestions response
+        # Mock suggestions response (live API - returns immediately with results)
         client.get_keyword_suggestions.return_value = {
             "tasks": [{
                 "id": "suggestion_task_456",
-                "status_code": 20000
+                "status_code": 20000,
+                "result": [
+                    {
+                        "keyword": "seo audit tools",
+                        "search_volume": 1200,
+                        "cpc": 4.10,
+                        "competition": 0.65
+                    },
+                    {
+                        "keyword": "free seo tools",
+                        "search_volume": 3300,
+                        "cpc": 1.80,
+                        "competition": 0.55
+                    }
+                ]
             }]
         }
 
@@ -168,9 +157,8 @@ class TestEnhancedKeywordAnalyzer:
 
     def test_error_handling_no_results(self, keyword_analyzer, sample_keyword_request):
         """Test error handling when no results are returned."""
-        keyword_analyzer.client.wait_for_task_completion.side_effect = None
-        keyword_analyzer.client.wait_for_task_completion.return_value = {
-            "tasks": [{"result": None}]
+        keyword_analyzer.client.get_keyword_data.return_value = {
+            "tasks": [{"result": []}]  # Empty result array
         }
 
         result = keyword_analyzer.analyze_keywords(sample_keyword_request)

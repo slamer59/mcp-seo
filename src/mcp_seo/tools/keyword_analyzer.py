@@ -29,7 +29,7 @@ class KeywordAnalyzer:
             location_code = get_location_code(request.location)
             language_code = get_language_code(request.language)
 
-            # Get keyword data
+            # Get keyword data (live API - returns immediately)
             result = self.client.get_keyword_data(
                 keywords=request.keywords,
                 location_code=location_code,
@@ -39,32 +39,22 @@ class KeywordAnalyzer:
             if not result.get("tasks"):
                 raise ApiException("No task data returned")
 
-            task_id = result["tasks"][0]["id"]
+            task = result["tasks"][0]
+            task_id = task.get("id", "live-sync")
 
-            # Wait for completion and get results
-            completed_result = self.client.wait_for_task_completion(task_id, "keywords")
-
-            if (not completed_result.get("tasks") or
-                not completed_result["tasks"] or
-                completed_result["tasks"][0].get("result") is None):
+            # Live API returns results immediately in the response
+            if not task.get("result") or len(task["result"]) == 0:
                 return {
                     "task_id": task_id,
                     "status": "failed",
                     "error": "No keyword data available",
                 }
 
-            # Process keyword data
+            # Process keyword data - live API returns keywords directly in result array
             keywords_data = []
-            task_result = completed_result["tasks"][0]["result"]
-            if not task_result or len(task_result) == 0:
-                return {
-                    "task_id": task_id,
-                    "status": "failed",
-                    "error": "No keyword data available",
-                }
-            task_result = task_result[0]
+            task_result = task["result"]
 
-            for keyword_info in task_result.get("items", []):
+            for keyword_info in task_result:
                 keyword_data = KeywordData(
                     keyword=keyword_info.get("keyword", ""),
                     search_volume=keyword_info.get("search_volume"),
@@ -102,7 +92,9 @@ class KeywordAnalyzer:
             for kw in keywords_data:
                 keyword_performance_data[kw["keyword"]] = {
                     "search_volume": {"search_volume": kw.get("search_volume", 0)},
-                    "difficulty": {"difficulty": kw.get("competition", 0) * 100},  # Convert competition to difficulty score
+                    "difficulty": {
+                        "difficulty": kw.get("competition", 0) * 100
+                    },  # Convert competition to difficulty score
                     "position": None,  # Not available in this context
                 }
 
@@ -117,9 +109,7 @@ class KeywordAnalyzer:
             )
 
             # Add formatted report
-            result["formatted_report"] = self.reporter.generate_keyword_report(
-                result
-            )
+            result["formatted_report"] = self.reporter.generate_keyword_report(result)
 
             return result
 
@@ -142,6 +132,7 @@ class KeywordAnalyzer:
             location_code = get_location_code(location)
             language_code = get_language_code(language)
 
+            # Live API - returns immediately
             result = self.client.get_keyword_suggestions(
                 keyword=seed_keyword,
                 location_code=location_code,
@@ -152,25 +143,22 @@ class KeywordAnalyzer:
             if not result.get("tasks"):
                 raise ApiException("No task data returned")
 
-            task_id = result["tasks"][0]["id"]
+            task = result["tasks"][0]
+            task_id = task.get("id", "live-sync")
 
-            # Wait for completion and get results
-            completed_result = self.client.wait_for_task_completion(task_id, "keywords")
-
-            if not completed_result.get("tasks") or not completed_result["tasks"][
-                0
-            ].get("result"):
+            # Live API returns results immediately
+            if not task.get("result") or len(task["result"]) == 0:
                 return {
                     "task_id": task_id,
                     "status": "failed",
                     "error": "No keyword suggestions available",
                 }
 
-            # Process suggestions
+            # Process suggestions - live API returns data directly
             suggestions = []
-            task_result = completed_result["tasks"][0]["result"][0]
+            task_result = task["result"]
 
-            for item in task_result.get("items", []):
+            for item in task_result:
                 suggestion = {
                     "keyword": item.get("keyword", ""),
                     "search_volume": item.get("search_volume"),
@@ -204,9 +192,7 @@ class KeywordAnalyzer:
             )
 
             # Add formatted report
-            result["formatted_report"] = self.reporter.generate_keyword_report(
-                result
-            )
+            result["formatted_report"] = self.reporter.generate_keyword_report(result)
 
             return result
 
@@ -222,6 +208,7 @@ class KeywordAnalyzer:
             location_code = get_location_code(request.location)
             language_code = get_language_code(request.language)
 
+            # Live API - returns immediately (within ~6 seconds)
             result = self.client.get_serp_results(
                 keyword=request.keyword,
                 location_code=location_code,
@@ -233,14 +220,11 @@ class KeywordAnalyzer:
             if not result.get("tasks"):
                 raise ApiException("No task data returned")
 
-            task_id = result["tasks"][0]["id"]
+            task = result["tasks"][0]
+            task_id = task.get("id", "live-sync")
 
-            # Wait for completion and get results
-            completed_result = self.client.wait_for_task_completion(task_id, "serp")
-
-            if not completed_result.get("tasks") or not completed_result["tasks"][
-                0
-            ].get("result"):
+            # Live API returns results immediately
+            if not task.get("result") or len(task["result"]) == 0:
                 return {
                     "task_id": task_id,
                     "status": "failed",
@@ -248,7 +232,7 @@ class KeywordAnalyzer:
                 }
 
             # Process SERP results
-            task_result = completed_result["tasks"][0]["result"][0]
+            task_result = task["result"][0]
             organic_results = []
             paid_results = []
             featured_snippet = None
@@ -627,8 +611,9 @@ class KeywordAnalyzer:
     def _get_keyword_suggestions(
         self, seed_keyword: str, location_code: int, language_code: str, limit: int
     ) -> List[Dict[str, Any]]:
-        """Helper method to get keyword suggestions."""
+        """Helper method to get keyword suggestions using live API."""
         try:
+            # Live API - returns immediately
             result = self.client.get_keyword_suggestions(
                 keyword=seed_keyword,
                 location_code=location_code,
@@ -636,16 +621,11 @@ class KeywordAnalyzer:
                 limit=limit,
             )
 
-            task_id = result["tasks"][0]["id"]
-            completed_result = self.client.wait_for_task_completion(task_id, "keywords")
-
             suggestions = []
-            if completed_result.get("tasks") and completed_result["tasks"][0].get(
-                "result"
-            ):
-                task_result = completed_result["tasks"][0]["result"][0]
+            if result.get("tasks") and result["tasks"][0].get("result"):
+                task_result = result["tasks"][0]["result"]
 
-                for item in task_result.get("items", []):
+                for item in task_result:
                     suggestions.append(
                         {
                             "keyword": item.get("keyword", ""),

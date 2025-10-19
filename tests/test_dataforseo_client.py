@@ -422,7 +422,7 @@ class TestDataForSEOClientSERPMethods:
         with patch.object(client, '_make_request', return_value={"status_code": 20000}) as mock_request:
             client.get_serp_results("test keyword")
 
-        mock_request.assert_called_once_with("/serp/google/organic/task_post", "POST", expected_data)
+        mock_request.assert_called_once_with("/serp/google/organic/live/advanced", "POST", expected_data)
 
     def test_get_serp_results_custom_params(self, client):
         """Test SERP results with custom parameters."""
@@ -447,7 +447,7 @@ class TestDataForSEOClientSERPMethods:
                 tag="custom-tag"
             )
 
-        mock_request.assert_called_once_with("/serp/google/organic/task_post", "POST", expected_data)
+        mock_request.assert_called_once_with("/serp/google/organic/live/advanced", "POST", expected_data)
 
     def test_get_serp_tasks_ready(self, client):
         """Test SERP tasks ready retrieval."""
@@ -498,7 +498,7 @@ class TestDataForSEOClientKeywordMethods:
         with patch.object(client, '_make_request', return_value={"status_code": 20000}) as mock_request:
             client.get_keyword_data(keywords)
 
-        mock_request.assert_called_once_with("/keywords_data/google_ads/search_volume/task_post", "POST", expected_data)
+        mock_request.assert_called_once_with("/keywords_data/google_ads/search_volume/live", "POST", expected_data)
 
     def test_get_keyword_data_custom_location(self, client):
         """Test keyword data with custom location and language."""
@@ -513,12 +513,12 @@ class TestDataForSEOClientKeywordMethods:
         with patch.object(client, '_make_request', return_value={"status_code": 20000}) as mock_request:
             client.get_keyword_data(keywords, location_code=2724, language_code="es")
 
-        mock_request.assert_called_once_with("/keywords_data/google_ads/search_volume/task_post", "POST", expected_data)
+        mock_request.assert_called_once_with("/keywords_data/google_ads/search_volume/live", "POST", expected_data)
 
     def test_get_keyword_suggestions_default_params(self, client):
         """Test keyword suggestions with default parameters."""
         expected_data = [{
-            "keyword": "seo",
+            "keywords": ["seo"],
             "location_code": 2840,
             "language_code": "en",
             "limit": 100,
@@ -528,12 +528,12 @@ class TestDataForSEOClientKeywordMethods:
         with patch.object(client, '_make_request', return_value={"status_code": 20000}) as mock_request:
             client.get_keyword_suggestions("seo")
 
-        mock_request.assert_called_once_with("/keywords_data/google_ads/keywords_for_keywords/task_post", "POST", expected_data)
+        mock_request.assert_called_once_with("/keywords_data/google_ads/keywords_for_keywords/live", "POST", expected_data)
 
     def test_get_keyword_suggestions_custom_params(self, client):
         """Test keyword suggestions with custom parameters."""
         expected_data = [{
-            "keyword": "digital marketing",
+            "keywords": ["digital marketing"],
             "location_code": 2826,
             "language_code": "en",
             "limit": 50,
@@ -548,7 +548,7 @@ class TestDataForSEOClientKeywordMethods:
                 limit=50
             )
 
-        mock_request.assert_called_once_with("/keywords_data/google_ads/keywords_for_keywords/task_post", "POST", expected_data)
+        mock_request.assert_called_once_with("/keywords_data/google_ads/keywords_for_keywords/live", "POST", expected_data)
 
 
 class TestDataForSEOClientDataForSEOLabsMethods:
@@ -1216,7 +1216,7 @@ class TestDataForSEOClientRealWorldScenarios:
         with patch.object(client, '_make_request', return_value={"status_code": 20000}) as mock_request:
             client.get_keyword_data(large_keyword_list)
 
-        mock_request.assert_called_once_with("/keywords_data/google_ads/search_volume/task_post", "POST", expected_data)
+        mock_request.assert_called_once_with("/keywords_data/google_ads/search_volume/live", "POST", expected_data)
 
     def test_unicode_content_handling(self, client):
         """Test handling of Unicode content in requests."""

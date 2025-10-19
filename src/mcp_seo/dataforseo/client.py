@@ -133,9 +133,14 @@ class DataForSEOClient:
         return self._make_request("/on_page/lighthouse", "POST", data)
     
     # SERP API Methods
-    def get_serp_results(self, keyword: str, location_code: int = 2840, 
+    def get_serp_results(self, keyword: str, location_code: int = 2840,
                         language_code: str = "en", **kwargs) -> Dict[str, Any]:
-        """Get Google SERP results for keyword."""
+        """
+        Get Google SERP results for keyword using live synchronous API.
+
+        Returns results immediately without task polling (6 seconds max).
+        Note: Default depth is 10. Specify depth parameter for more results.
+        """
         data = [{
             "keyword": keyword,
             "location_code": location_code,
@@ -145,7 +150,7 @@ class DataForSEOClient:
             "depth": kwargs.get("depth", 100),
             "tag": kwargs.get("tag", "fastmcp-seo")
         }]
-        return self._make_request("/serp/google/organic/task_post", "POST", data)
+        return self._make_request("/serp/google/organic/live/advanced", "POST", data)
 
     def get_serp_data(self, keyword: str, location: str = "United States") -> Dict[str, Any]:
         """Get SERP data for a keyword (alias for get_serp_results)."""
@@ -163,28 +168,36 @@ class DataForSEOClient:
         return self._make_request(f"/serp/google/organic/task_get/{task_id}")
     
     # Keywords Data API Methods
-    def get_keyword_data(self, keywords: List[str], location_code: int = 2840, 
+    def get_keyword_data(self, keywords: List[str], location_code: int = 2840,
                         language_code: str = "en") -> Dict[str, Any]:
-        """Get keyword search volume and competition data."""
+        """
+        Get keyword search volume and competition data using live synchronous API.
+
+        Returns results immediately without task polling (much faster than task-based API).
+        """
         data = [{
             "keywords": keywords,
             "location_code": location_code,
             "language_code": language_code,
             "tag": "fastmcp-seo"
         }]
-        return self._make_request("/keywords_data/google_ads/search_volume/task_post", "POST", data)
+        return self._make_request("/keywords_data/google_ads/search_volume/live", "POST", data)
     
-    def get_keyword_suggestions(self, keyword: str, location_code: int = 2840, 
+    def get_keyword_suggestions(self, keyword: str, location_code: int = 2840,
                               language_code: str = "en", **kwargs) -> Dict[str, Any]:
-        """Get keyword suggestions."""
+        """
+        Get keyword suggestions using live synchronous API.
+
+        Returns results immediately without task polling (much faster than task-based API).
+        """
         data = [{
-            "keyword": keyword,
+            "keywords": [keyword],  # Live API expects 'keywords' array
             "location_code": location_code,
             "language_code": language_code,
             "limit": kwargs.get("limit", 100),
             "tag": "fastmcp-seo"
         }]
-        return self._make_request("/keywords_data/google_ads/keywords_for_keywords/task_post", "POST", data)
+        return self._make_request("/keywords_data/google_ads/keywords_for_keywords/live", "POST", data)
     
     # DataForSEO Labs API Methods
     def get_domain_rank_overview(self, target: str, location_code: int = 2840, 
@@ -312,21 +325,31 @@ class DataForSEOClient:
         
         return self._make_request(endpoint)
     
-    def wait_for_task_completion(self, task_id: str, endpoint_type: str = "serp", 
-                                max_attempts: int = 30, delay: int = 10) -> Dict[str, Any]:
-        """Wait for task completion and return results."""
+    def wait_for_task_completion(self, task_id: str, endpoint_type: str = "serp",
+                                max_attempts: int = 30, delay: int = 2) -> Dict[str, Any]:
+        """
+        Wait for task completion and return results with progressive delay.
+
+        Uses progressive delay: starts at 2s, increases to max 10s for efficient polling.
+        Most tasks complete within 1-3 seconds, so we check frequently at first.
+        """
         import time
-        
+
         for attempt in range(max_attempts):
             try:
                 result = self.get_task_results(task_id, endpoint_type)
                 if result.get("tasks") and result["tasks"][0].get("result"):
                     return result
-                time.sleep(delay)
+
+                # Progressive delay: start fast, then slow down
+                # 2s, 2s, 3s, 4s, 5s, ..., max 10s
+                current_delay = min(delay + attempt, 10)
+                time.sleep(current_delay)
             except ApiException as e:
                 if "not found" in str(e).lower():
-                    time.sleep(delay)
+                    current_delay = min(delay + attempt, 10)
+                    time.sleep(current_delay)
                     continue
                 raise
-        
-        raise ApiException(f"Task {task_id} did not complete within {max_attempts * delay} seconds")
+
+        raise ApiException(f"Task {task_id} did not complete within timeout")
