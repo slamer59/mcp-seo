@@ -103,7 +103,7 @@ class TestPageRankToolsIntegration:
 
             # Verify results
             assert "error" not in result
-            assert result["domain"] == "https://example.com/"
+            assert result["domain"] == "https://example.com"
             assert "graph_statistics" in result
             assert "metrics" in result
             assert "insights" in result
@@ -163,7 +163,7 @@ class TestPageRankToolsIntegration:
 
             # Should use homepage instead of sitemap
             mock_builder.build_link_graph_from_urls.assert_called_once_with(
-                ["https://example.com/"]
+                ["https://example.com"]
             )
             assert result["parameters"]["used_sitemap"] is False
 
@@ -226,7 +226,7 @@ class TestPageRankToolsIntegration:
 
         # Verify results
         assert "error" not in result
-        assert result["domain"] == "https://example.com/"
+        assert result["domain"] == "https://example.com"
         assert "graph_statistics" in result
         assert "basic_metrics" in result
         assert "top_pages_by_links" in result
@@ -387,7 +387,7 @@ class TestPageRankToolsIntegration:
 
         # Verify results
         assert "error" not in result
-        assert result["domain"] == "https://example.com/"
+        assert result["domain"] == "https://example.com"
         assert "link_opportunities" in result
         assert "optimization_plan" in result
         assert "general_recommendations" in result

@@ -27,7 +27,7 @@ class TestMCPParameterHandling:
         valid_request = LinkGraphRequest(
             domain="https://www.gitalchemy.app", max_pages=100, use_sitemap=True
         )
-        assert str(valid_request.domain) == "https://www.gitalchemy.app/"
+        assert str(valid_request.domain) == "https://www.gitalchemy.app"
         assert valid_request.max_pages == 100
         assert valid_request.use_sitemap is True
 
